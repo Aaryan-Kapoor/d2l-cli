@@ -55,4 +55,4 @@ Put the flag before the command: `d2l --md grades "calc"`
 
 ## Skill file
 
-Copy `.claude/skills/d2l/SKILL.md` into your project's `.claude/skills/d2l/` directory for full integration with Claude Code / OpenClaw.
+Copy `.claude/skills/d2l/SKILL.md` into your project's skills directory for full integration with Claude Code / OpenClaw / other Agent framework.
