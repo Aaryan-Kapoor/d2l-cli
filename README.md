@@ -4,6 +4,18 @@ Read-only CLI for D2L Brightspace. Pulls grades, assignments, content, syllabi, 
 
 > **AI agents:** See [AGENTS.md](AGENTS.md) for the full command reference, or [QUICKSTART.md](QUICKSTART.md) for setup.
 
+## Example Usage
+
+Ask your AI agent a natural question — it calls `d2l` under the hood and gives you a clean summary.
+
+> *"What are my grades this semester?"*
+
+![Claude Code fetching grades from all courses and presenting a summary table](image.png)
+
+> *"What's due next week?"*
+
+![Claude Code checking due dates across courses and listing upcoming items](image-1.png)
+
 ## Setup
 
 ```bash
