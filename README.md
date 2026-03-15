@@ -1,3 +1,14 @@
+<p align="center">
+  <img src="banner.svg" alt="d2l-cli — Read-only CLI for D2L Brightspace" width="100%"/>
+</p>
+
+<p align="center">
+  <img src="https://img.shields.io/badge/python-3.10+-blue?logo=python&logoColor=white" alt="Python 3.10+"/>
+  <img src="https://img.shields.io/badge/license-MIT-green" alt="MIT License"/>
+  <img src="https://img.shields.io/badge/read--only-by%20design-brightgreen" alt="Read-only"/>
+  <img src="https://img.shields.io/badge/AI%20agent-ready-blueviolet?logo=data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCI+PHBhdGggZD0iTTEyIDJhMTAgMTAgMCAxIDAgMCAyMCAxMCAxMCAwIDAgMCAwLTIwem0wIDNhMiAyIDAgMSAxIDAgNCAyIDIgMCAwIDEgMC00em0zIDEySDlWOWg2eiIgZmlsbD0id2hpdGUiLz48L3N2Zz4=" alt="AI Agent Ready"/>
+</p>
+
 # d2l-cli
 
 Read-only CLI for D2L Brightspace. Pulls grades, assignments, content, syllabi, and more — designed to be used by AI coding agents (Claude Code, OpenClaw, etc.) as a tool.
@@ -10,11 +21,11 @@ Ask your AI agent a natural question — it calls `d2l` under the hood and gives
 
 > *"What are my grades this semester?"*
 
-![Claude Code fetching grades from all courses and presenting a summary table](image.png)
+![Claude Code fetching grades from all courses and presenting a summary table](assets/grades-demo.png)
 
 > *"What's due next week?"*
 
-![Claude Code checking due dates across courses and listing upcoming items](image-1.png)
+![Claude Code checking due dates across courses and listing upcoming items](assets/due-demo.png)
 
 ## Setup
 
@@ -253,3 +264,7 @@ Token expires every ~1 hour. Just run `d2l login` again — your SSO session coo
 ## Strictly Read-Only
 
 This tool only performs GET requests. It cannot submit assignments, post discussions, modify grades, or change anything on D2L. By design.
+
+## Disclaimer
+
+This is a personal project and is not affiliated with, endorsed by, or associated with D2L, Brightspace, or Kennesaw State University in any way. Just something I built for myself and thought was worth sharing.
