@@ -8,6 +8,9 @@ import requests
 from d2l.config import LMS_HOST, TOKEN_FILE, USER_AGENT
 from d2l.errors import TokenExpiredError, TokenNotFoundError
 
+TOKEN_ISSUER = "https://api.brightspace.com/auth"
+TOKEN_AUDIENCE = "https://api.brightspace.com/auth/token"
+
 
 def decode_jwt_claims(token):
     """Decode JWT payload without external deps."""
@@ -16,102 +19,122 @@ def decode_jwt_claims(token):
     return json.loads(base64.urlsafe_b64decode(payload))
 
 
-def _load_file_auth():
+def _read_token_file():
     if not TOKEN_FILE.exists():
         return None
     return json.loads(TOKEN_FILE.read_text())
 
 
-def load_token():
-    """Load D2L auth from ~/.d2l/token.json > .env > D2L_TOKEN env var.
+def _parse_bearer_claims(token):
+    if not isinstance(token, str) or token.count(".") != 2:
+        return None
+    try:
+        claims = decode_jwt_claims(token)
+    except Exception:
+        return None
+    if claims.get("iss") != TOKEN_ISSUER or claims.get("aud") != TOKEN_AUDIENCE:
+        return None
+    return claims
 
-    Returns either a bearer token string or a cookie-auth dict.
-    Raises TokenExpiredError if found but expired and no cookie session exists.
+
+def _unsupported_token_file_message(data):
+    if isinstance(data, dict) and data.get("auth_type"):
+        return (
+            f"token.json contains unsupported auth_type={data['auth_type']}. "
+            "Run: d2l login"
+        )
+    return "token.json does not contain a valid D2L bearer token. Run: d2l login"
+
+
+def _load_env_token(token, source_name):
+    if not token:
+        return None
+    if _parse_bearer_claims(token):
+        return token
+    raise TokenNotFoundError(
+        f"{source_name} does not contain a valid D2L bearer token. Run: d2l login"
+    )
+
+
+def load_token():
+    """Load bearer token from ~/.d2l/token.json > .env > D2L_TOKEN env var.
+
+    Raises TokenExpiredError if found but expired.
     Raises TokenNotFoundError if not found.
     """
-    data = _load_file_auth()
-    if data:
-        exp = data.get("exp", 0)
-        if data.get("token") and exp > time.time():
-            return data["token"]
-        if data.get("cookies"):
-            return data
-        if data.get("token"):
-            raise TokenExpiredError(
-                f"Token expired at {time.ctime(exp)}. Run: d2l login"
-            )
+    data = _read_token_file()
+    if data is not None:
+        token = data.get("token") if isinstance(data, dict) else None
+        claims = _parse_bearer_claims(token)
+        if not claims:
+            raise TokenNotFoundError(_unsupported_token_file_message(data))
+
+        exp = claims.get("exp", data.get("exp", 0))
+        if exp > time.time():
+            return token
+        raise TokenExpiredError(
+            f"Token expired at {time.ctime(exp)}. Run: d2l login"
+        )
 
     env_path = os.path.join(os.getcwd(), ".env")
     if os.path.exists(env_path):
         for line in open(env_path):
             if line.startswith("D2L_TOKEN="):
-                return line.strip().split("=", 1)[1]
+                return _load_env_token(
+                    line.strip().split("=", 1)[1], ".env D2L_TOKEN"
+                )
 
-    val = os.environ.get("D2L_TOKEN")
-    if val:
-        return val
+    env_token = _load_env_token(os.environ.get("D2L_TOKEN"), "D2L_TOKEN")
+    if env_token:
+        return env_token
 
-    raise TokenNotFoundError("No token found. Run: d2l login")
+    raise TokenNotFoundError("No bearer token found. Run: d2l login")
 
 
 def token_info():
     """Return token metadata dict (no API call needed)."""
-    data = _load_file_auth()
-    if not data:
-        return {"status": "not found"}
+    data = _read_token_file()
+    if data is None:
+        return {"status": "not found", "error": "No token found. Run: d2l login"}
 
+    token = data.get("token") if isinstance(data, dict) else None
+    claims = _parse_bearer_claims(token)
+    if not claims:
+        return {
+            "status": "unsupported",
+            "auth_type": data.get("auth_type") if isinstance(data, dict) else None,
+            "error": _unsupported_token_file_message(data),
+        }
+
+    exp = claims.get("exp", data.get("exp", 0))
     now = time.time()
-    if data.get("token"):
-        exp = data.get("exp", 0)
-        remaining = max(0, exp - now)
-        return {
-            "status": "valid" if exp > now else "expired",
-            "auth_type": "bearer",
-            "user_id": data.get("sub"),
-            "tenant": data.get("tenant"),
-            "expires_at": time.ctime(exp),
-            "remaining_seconds": int(remaining),
-            "remaining_minutes": round(remaining / 60, 1),
-            "captured_at": time.ctime(data.get("captured_at", 0)),
-        }
-
-    if data.get("cookies"):
-        return {
-            "status": "valid",
-            "auth_type": "browser-session",
-            "user_id": data.get("sub"),
-            "tenant": data.get("tenant"),
-            "captured_at": time.ctime(data.get("captured_at", 0)),
-            "cookie_count": len(data.get("cookies", [])),
-        }
-
-    return {"status": "not found"}
+    remaining = max(0, exp - now)
+    return {
+        "status": "valid" if exp > now else "expired",
+        "auth_type": "bearer",
+        "user_id": data.get("sub") or claims.get("sub"),
+        "tenant": data.get("tenant") or claims.get("tenantid"),
+        "expires_at": time.ctime(exp),
+        "remaining_seconds": int(remaining),
+        "remaining_minutes": round(remaining / 60, 1),
+        "captured_at": time.ctime(data.get("captured_at", 0)),
+    }
 
 
-def make_session(auth):
-    """Create a requests.Session with bearer or cookie auth and browser headers."""
+def make_session(token):
+    """Create a requests.Session with Bearer auth and browser headers."""
+    if not _parse_bearer_claims(token):
+        raise TokenNotFoundError(
+            "Saved token is not a valid D2L bearer token. Run: d2l login"
+        )
+
     s = requests.Session()
-    s.headers.update({
-        "Origin": LMS_HOST,
-        "Referer": f"{LMS_HOST}/",
-        "User-Agent": USER_AGENT,
-    })
-
-    if isinstance(auth, str):
-        s.headers["Authorization"] = f"Bearer {auth}"
-        return s
-
-    if isinstance(auth, dict):
-        token = auth.get("token")
-        if token:
-            s.headers["Authorization"] = f"Bearer {token}"
-        for cookie in auth.get("cookies", []):
-            s.cookies.set(
-                cookie["name"],
-                cookie["value"],
-                domain=cookie.get("domain"),
-                path=cookie.get("path", "/"),
-            )
-        return s
-
-    raise TokenNotFoundError("No valid D2L auth found. Run: d2l login")
+    s.headers.update(
+        {
+            "Authorization": f"Bearer {token}",
+            "Origin": LMS_HOST,
+            "Referer": f"{LMS_HOST}/",
+            "User-Agent": USER_AGENT,
+        }
+    )
+    return s
