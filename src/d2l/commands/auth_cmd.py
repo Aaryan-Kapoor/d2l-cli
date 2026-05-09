@@ -1,8 +1,199 @@
+import json
+import re
+import time
+from pathlib import Path
+
 import click
 
-from d2l.auth import token_info, load_token, make_session
+from d2l.auth import TOKEN_AUDIENCE, TOKEN_ISSUER, decode_jwt_claims, token_info
 from d2l.errors import handle_errors
-from d2l.formatting import output, table
+from d2l.formatting import output
+
+D2L_TOKEN_RE = re.compile(rb"eyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+")
+LOCAL_STORAGE_KEY = "D2L.Fetch.Tokens"
+XSRF_STORAGE_KEY = "XSRF.Token"
+AUTH_SCOPE = "*:*:*"
+LOGIN_WAIT_SECONDS = 300
+HEADLESS_WAIT_SECONDS = 30
+
+
+def _is_valid_claims(claims):
+    return (
+        claims.get("iss") == TOKEN_ISSUER
+        and claims.get("aud") == TOKEN_AUDIENCE
+        and isinstance(claims.get("exp"), int)
+    )
+
+
+def _parse_token(token):
+    try:
+        claims = decode_jwt_claims(token)
+    except Exception:
+        return None
+    if not _is_valid_claims(claims):
+        return None
+    return claims
+
+
+def _save_token(token, claims, token_file, token_dir):
+    token_dir.mkdir(exist_ok=True)
+    data = {
+        "token": token,
+        "exp": claims.get("exp"),
+        "sub": claims.get("sub"),
+        "tenant": claims.get("tenantid"),
+        "captured_at": int(time.time()),
+    }
+    token_file.write_text(json.dumps(data, indent=2))
+
+
+def _extract_token_from_local_storage(page):
+    try:
+        raw = page.evaluate(
+            """key => {
+                try {
+                    return window.localStorage.getItem(key);
+                } catch {
+                    return null;
+                }
+            }""",
+            LOCAL_STORAGE_KEY,
+        )
+    except Exception:
+        return None
+
+    if not raw:
+        return None
+
+    try:
+        data = json.loads(raw)
+    except Exception:
+        return None
+
+    now = int(time.time())
+    best = None
+    for item in data.values():
+        if not isinstance(item, dict):
+            continue
+        token = item.get("access_token")
+        if not token:
+            continue
+        claims = _parse_token(token)
+        if not claims:
+            continue
+        exp = claims.get("exp", 0)
+        if exp <= now:
+            continue
+        candidate = (exp, token, claims)
+        if best is None or candidate[0] > best[0]:
+            best = candidate
+
+    if best is None:
+        return None
+
+    _, token, claims = best
+    return token, claims
+
+
+def _request_token_in_page(page):
+    try:
+        result = page.evaluate(
+            """({ xsrfKey, scope }) => (async () => {
+                let xsrf = null;
+                try {
+                    xsrf = window.localStorage.getItem(xsrfKey);
+                } catch {}
+
+                if (!xsrf) {
+                    const xsrfResp = await window.fetch('/d2l/lp/auth/xsrf-tokens', {
+                        credentials: 'include'
+                    });
+                    if (!xsrfResp.ok) {
+                        return { ok: false, status: xsrfResp.status, stage: 'xsrf' };
+                    }
+                    const xsrfData = await xsrfResp.json();
+                    xsrf = xsrfData.referrerToken;
+                    try {
+                        window.localStorage.setItem(xsrfKey, xsrf);
+                    } catch {}
+                }
+
+                const tokenResp = await window.fetch('/d2l/lp/auth/oauth2/token', {
+                    method: 'POST',
+                    credentials: 'include',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                        'X-Csrf-Token': xsrf,
+                    },
+                    body: `scope=${scope}`,
+                });
+
+                const text = await tokenResp.text();
+                return { ok: tokenResp.ok, status: tokenResp.status, text };
+            })()""",
+            {"xsrfKey": XSRF_STORAGE_KEY, "scope": AUTH_SCOPE},
+        )
+    except Exception:
+        return None
+
+    if not result or not result.get("ok"):
+        return None
+
+    try:
+        data = json.loads(result["text"])
+    except Exception:
+        return None
+
+    token = data.get("access_token")
+    if not token:
+        return None
+
+    claims = _parse_token(token)
+    if not claims:
+        return None
+    if claims.get("exp", 0) <= time.time():
+        return None
+    return token, claims
+
+
+def _extract_profile_token(browser_profile: Path):
+    leveldb_dir = browser_profile / "Default" / "Local Storage" / "leveldb"
+    if not leveldb_dir.exists():
+        return None
+
+    now = int(time.time())
+    seen = set()
+    best = None
+
+    # Best-effort fallback only. Chrome may still be writing these files.
+    for path in sorted(leveldb_dir.iterdir()):
+        if not path.is_file() or path.suffix not in {".log", ".ldb"}:
+            continue
+        try:
+            raw = path.read_bytes()
+        except OSError:
+            continue
+
+        for match in D2L_TOKEN_RE.finditer(raw):
+            token = match.group(0).decode("utf-8", "ignore")
+            if token in seen:
+                continue
+            seen.add(token)
+            claims = _parse_token(token)
+            if not claims:
+                continue
+            exp = claims.get("exp", 0)
+            if exp <= now:
+                continue
+            candidate = (exp, token, claims, path)
+            if best is None or candidate[0] > best[0]:
+                best = candidate
+
+    if not best:
+        return None
+
+    _, token, claims, path = best
+    return token, claims, path
 
 
 @click.command()
@@ -12,23 +203,34 @@ def login(headless):
     try:
         from playwright.sync_api import sync_playwright
     except ImportError:
-        click.echo("Playwright not installed. Run: pip install playwright && playwright install chromium", err=True)
+        click.echo(
+            "Playwright not installed. Run: pip install playwright && playwright install chromium",
+            err=True,
+        )
         raise SystemExit(1)
 
     from d2l.config import TOKEN_DIR, TOKEN_FILE, BROWSER_PROFILE
-    import json, time, base64
 
     d2l_url = "https://kennesaw.view.usg.edu/d2l/home"
     captured_token = None
+    captured_claims = None
 
     def on_request(request):
-        nonlocal captured_token
+        nonlocal captured_token, captured_claims
         if captured_token:
             return
         auth = request.headers.get("authorization", "")
-        if auth.startswith("Bearer eyJ"):
-            captured_token = auth.removeprefix("Bearer ")
-            click.echo(f"[*] Captured token from: {request.url[:80]}...")
+        if not auth.startswith("Bearer eyJ"):
+            return
+        token = auth.removeprefix("Bearer ")
+        claims = _parse_token(token)
+        if not claims:
+            return
+        if claims["exp"] <= time.time():
+            return
+        captured_token = token
+        captured_claims = claims
+        click.echo(f"[*] Captured token from request: {request.url[:80]}...")
 
     with sync_playwright() as p:
         click.echo(f"[*] Launching browser (profile: {BROWSER_PROFILE})")
@@ -40,34 +242,46 @@ def login(headless):
             headless=headless,
             viewport={"width": 1280, "height": 900},
         )
+        context.on("request", on_request)
         page = context.pages[0] if context.pages else context.new_page()
-        page.on("request", on_request)
         page.goto(d2l_url, wait_until="domcontentloaded")
 
+        deadline = time.time() + (
+            HEADLESS_WAIT_SECONDS if headless else LOGIN_WAIT_SECONDS
+        )
         try:
-            while not captured_token:
-                page.wait_for_timeout(500)
-                if not context.pages:
+            while not captured_token and time.time() < deadline:
+                for candidate in reversed(context.pages or [page]):
+                    result = _extract_token_from_local_storage(candidate)
+                    if result:
+                        captured_token, captured_claims = result
+                        click.echo("[*] Captured token from local storage")
+                        break
+                    result = _request_token_in_page(candidate)
+                    if result:
+                        captured_token, captured_claims = result
+                        click.echo("[*] Refreshed token through D2L auth endpoint")
+                        break
+                if captured_token:
+                    break
+                if context.pages:
+                    context.pages[-1].wait_for_timeout(500)
+                else:
                     break
         except Exception:
             pass
 
-        if captured_token:
-            TOKEN_DIR.mkdir(exist_ok=True)
-            payload = captured_token.split(".")[1]
-            payload += "=" * (4 - len(payload) % 4)
-            claims = json.loads(base64.urlsafe_b64decode(payload))
-            data = {
-                "token": captured_token,
-                "exp": claims.get("exp"),
-                "sub": claims.get("sub"),
-                "tenant": claims.get("tenantid"),
-                "captured_at": int(time.time()),
-            }
-            TOKEN_FILE.write_text(json.dumps(data, indent=2))
+        if not captured_token:
+            profile_token = _extract_profile_token(BROWSER_PROFILE)
+            if profile_token:
+                captured_token, captured_claims, token_path = profile_token
+                click.echo(f"[*] Loaded token from browser profile: {token_path}")
+
+        if captured_token and captured_claims:
+            _save_token(captured_token, captured_claims, TOKEN_FILE, TOKEN_DIR)
             click.echo(f"\n[OK] Token saved to {TOKEN_FILE}")
-            click.echo(f"     Expires: {time.ctime(claims['exp'])}")
-            click.echo(f"     User ID: {claims.get('sub')}")
+            click.echo(f"     Expires: {time.ctime(captured_claims['exp'])}")
+            click.echo(f"     User ID: {captured_claims.get('sub')}")
         else:
             click.echo("[!] No token captured.", err=True)
             raise SystemExit(1)
@@ -80,13 +294,26 @@ def token():
     """Show token status (no API call needed)."""
     info = token_info()
     if info["status"] == "not found":
-        click.echo("No token found. Run: d2l login")
+        click.echo(info.get("error", "No token found. Run: d2l login"))
         return
+    if info["status"] == "unsupported":
+        click.echo(
+            info.get("error", "Unsupported auth in token.json. Run: d2l login"),
+            err=True,
+        )
+        raise SystemExit(1)
+
     click.echo(f"Status:    {info['status']}")
-    click.echo(f"User ID:   {info['user_id']}")
-    click.echo(f"Expires:   {info['expires_at']}")
-    click.echo(f"Remaining: {info['remaining_minutes']} min")
-    click.echo(f"Captured:  {info['captured_at']}")
+    if info.get("auth_type"):
+        click.echo(f"Auth:      {info['auth_type']}")
+    if info.get("user_id") is not None:
+        click.echo(f"User ID:   {info['user_id']}")
+    if info.get("expires_at"):
+        click.echo(f"Expires:   {info['expires_at']}")
+    if info.get("remaining_minutes") is not None:
+        click.echo(f"Remaining: {info['remaining_minutes']} min")
+    if info.get("captured_at"):
+        click.echo(f"Captured:  {info['captured_at']}")
 
 
 @click.command()
@@ -96,8 +323,12 @@ def whoami(ctx):
     """Show current user identity."""
     client = ctx.obj["get_client"]()
     data = client.whoami()
-    output(data, human_fn=lambda d: (
-        f"  {d.get('FirstName')} {d.get('LastName')}\n"
-        f"  Username: {d.get('UniqueName')}\n"
-        f"  ID: {d.get('Identifier')}"
-    ), title="Who Am I")
+    output(
+        data,
+        human_fn=lambda d: (
+            f"  {d.get('FirstName')} {d.get('LastName')}\n"
+            f"  Username: {d.get('UniqueName')}\n"
+            f"  ID: {d.get('Identifier')}"
+        ),
+        title="Who Am I",
+    )

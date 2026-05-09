@@ -62,11 +62,11 @@ def handle_errors(fn):
     def wrapper(*args, **kwargs):
         try:
             return fn(*args, **kwargs)
-        except TokenNotFoundError:
-            click.echo("No token found. Run: d2l login", err=True)
+        except TokenNotFoundError as e:
+            click.echo(str(e) or "No token found. Run: d2l login", err=True)
             raise SystemExit(1)
         except TokenExpiredError as e:
-            click.echo(f"Token expired. Run: d2l login", err=True)
+            click.echo(str(e) or "Token expired. Run: d2l login", err=True)
             raise SystemExit(1)
         except RateLimitError as e:
             msg = f"Rate limited by D2L."
