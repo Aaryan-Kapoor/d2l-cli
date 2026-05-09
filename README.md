@@ -13,7 +13,17 @@
 
 Read-only CLI for D2L Brightspace. Pulls grades, assignments, content, syllabi, and more — designed to be used by AI coding agents (Claude Code, OpenClaw, etc.) as a tool.
 
-> **AI agents:** See [AGENTS.md](AGENTS.md) for the full command reference, or [QUICKSTART.md](QUICKSTART.md) for setup.
+> **AI agents:** See [INSTALL_FOR_AGENTS.md](INSTALL_FOR_AGENTS.md) for end-to-end setup, [AGENTS.md](AGENTS.md) for the full command reference, or [QUICKSTART.md](QUICKSTART.md) for short setup.
+
+## Set Up With Your Agent
+
+Send this to your AI agent:
+
+```text
+Fetch and follow the instructions from https://raw.githubusercontent.com/Aaryan-Kapoor/d2l-cli/main/INSTALL_FOR_AGENTS.md
+```
+
+The agent will install the CLI, install the bundled `skills/d2l` skill into its own skill system when supported, handle D2L auth with your help when needed, verify access, and run course onboarding to create `D2L_COURSE_SOP.md`.
 
 ## Example Usage
 
@@ -32,16 +42,16 @@ Ask your AI agent a natural question — it calls `d2l` under the hood and gives
 ```bash
 git clone https://github.com/Aaryan-Kapoor/d2l-cli.git
 cd d2l-cli
-python -m venv .venv
-source .venv/bin/activate        # Linux/Mac
-source .venv/Scripts/activate    # Windows (Git Bash)
-pip install -e .
+python -m pip install --user -e ".[login]"
+export PATH="$(python -m site --user-base)/bin:$PATH"
+python -m playwright install chromium
+d2l --version
 ```
 
-For browser-based token capture (optional):
+`d2l` is installed as a normal executable on your user PATH, not something you need to run from an activated venv. If your shell cannot find it after install, add this to your shell profile:
+
 ```bash
-pip install -e ".[login]"
-playwright install chromium
+export PATH="$(python -m site --user-base)/bin:$PATH"
 ```
 
 ## Configuration
@@ -125,6 +135,9 @@ Downloads:
 
 AI Snapshot:
   dump [--course X] [--shallow] [--since N] [--include TYPE]
+
+Onboarding:
+  onboard [--output FILE] [--force] [--yes]  Create/update course SOP + onboarding state
 ```
 
 All COURSE arguments accept fuzzy names (`"data structures"`), course codes, or numeric org unit IDs.
@@ -149,10 +162,13 @@ d2l --md grades "calc"             # markdown
 
 **Setup steps:**
 
-1. Install `d2l-cli` in the agent's environment:
+1. Install `d2l-cli` onto the user's PATH:
    ```bash
    cd /path/to/d2l-cli
-   pip install -e .
+   python -m pip install --user -e ".[login]"
+   export PATH="$(python -m site --user-base)/bin:$PATH"
+   python -m playwright install chromium
+   d2l --version
    ```
 
 2. Capture a token:
@@ -160,9 +176,18 @@ d2l --md grades "calc"             # markdown
    d2l login
    ```
 
-3. Point your agent to this repo (or copy `AGENTS.md` to your project root). For Claude Code specifically, the `.claude/skills/d2l/SKILL.md` is also included.
+   If a saved token expires later, agents should try `d2l login --headless` first. If that fails, ask the user before launching `d2l login` for interactive browser login. Browser login is only for authentication; do not scrape course data through the browser.
 
-4. The agent can now run `d2l` commands. Example prompts:
+3. Optionally run first-time course onboarding:
+   ```bash
+   d2l onboard
+   ```
+
+   This writes `D2L_COURSE_SOP.md` and `.d2l/onboarding.json`. The state file stores a fingerprint of active courses, so agents can detect that onboarding is already complete and avoid repeating the setup interview unless courses change.
+
+4. Point your agent to this repo, copy `AGENTS.md` to your project root, or install the portable skill from `skills/d2l/`.
+
+5. The agent can now run `d2l` commands. Example prompts:
    - *"What's due this week?"*
    - *"How am I doing in data structures?"*
    - *"Download the starter code for assignment 6"*
@@ -192,7 +217,7 @@ For agents running on a headless server (no GUI):
 3. Set up a cron job to refresh the token (session cookies last days/weeks):
    ```bash
    # Refresh token every 45 minutes using saved session cookies
-   */45 * * * * cd /path/to/d2l-cli && .venv/bin/d2l login --headless
+   */45 * * * * d2l login --headless
    ```
 
 ## Key Commands for Agents
@@ -215,6 +240,9 @@ d2l download "data structures" "trees" -o ./assignment
 
 # Download lecture notes
 d2l download-content "calc" "Unit 3 Materials" -o ./notes
+
+# First-time course SOP setup
+d2l onboard
 ```
 
 ## KSU Quick Start
@@ -224,10 +252,9 @@ If you're at Kennesaw State University, no configuration needed — it works out
 ```bash
 git clone https://github.com/Aaryan-Kapoor/d2l-cli.git
 cd d2l-cli
-python -m venv .venv
-source .venv/Scripts/activate    # or source .venv/bin/activate on Linux/Mac
-pip install -e ".[login]"
-playwright install chromium
+python -m pip install --user -e ".[login]"
+export PATH="$(python -m site --user-base)/bin:$PATH"
+python -m playwright install chromium
 
 # Log in (opens browser, captures token automatically via KSU SSO)
 d2l login

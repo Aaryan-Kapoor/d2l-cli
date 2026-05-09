@@ -46,6 +46,7 @@ from d2l.commands.dump import dump
 from d2l.commands.updates import updates
 from d2l.commands.syllabus import syllabus
 from d2l.commands.download import download, download_content
+from d2l.commands.onboard import onboard
 
 cli.add_command(login)
 cli.add_command(token)
@@ -65,3 +66,4 @@ cli.add_command(updates)
 cli.add_command(syllabus)
 cli.add_command(download)
 cli.add_command(download_content)
+cli.add_command(onboard)
