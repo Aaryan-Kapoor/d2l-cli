@@ -13,7 +13,17 @@
 
 Read-only CLI for D2L Brightspace. Pulls grades, assignments, content, syllabi, and more — designed to be used by AI coding agents (Claude Code, OpenClaw, etc.) as a tool.
 
-> **AI agents:** See [AGENTS.md](AGENTS.md) for the full command reference, or [QUICKSTART.md](QUICKSTART.md) for setup.
+> **AI agents:** See [INSTALL_FOR_AGENTS.md](INSTALL_FOR_AGENTS.md) for end-to-end setup, [AGENTS.md](AGENTS.md) for the full command reference, or [QUICKSTART.md](QUICKSTART.md) for short setup.
+
+## Set Up With Your Agent
+
+Send this to your AI agent:
+
+```text
+Fetch and follow the instructions from https://github.com/Aaryan-Kapoor/d2l-cli/blob/main/INSTALL_FOR_AGENTS.md
+```
+
+The agent will install the CLI, handle D2L auth with your help when needed, verify access, and run course onboarding to create `D2L_COURSE_SOP.md`.
 
 ## Example Usage
 
