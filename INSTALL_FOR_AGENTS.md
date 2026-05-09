@@ -45,7 +45,48 @@ If `d2l` is not found, either keep using the venv explicitly:
 
 or add a shell alias/symlink appropriate for the user's environment.
 
-## Step 2: Configure the Institution
+
+## Step 2: Install the Agent Skill
+
+This repo ships one canonical portable skill at:
+
+```text
+skills/d2l/
+```
+
+Install that folder into your own agent system. Do not maintain a separate hand-written adapter unless your runtime requires one. The skill keeps the same working D2L instructions as `AGENTS.md` and adds the onboarding/sentinel workflow.
+
+Common installs:
+
+```bash
+# OpenClaw workspace skill (visible to the current workspace agent)
+mkdir -p <workspace>/skills
+cp -R ~/d2l-cli/skills/d2l <workspace>/skills/d2l
+
+# OpenClaw personal skill (visible to all OpenClaw agents on this machine)
+mkdir -p ~/.agents/skills
+cp -R ~/d2l-cli/skills/d2l ~/.agents/skills/d2l
+
+# Claude Code project skill
+mkdir -p <project>/.claude/skills
+cp -R ~/d2l-cli/skills/d2l <project>/.claude/skills/d2l
+```
+
+For other agent systems, copy `~/d2l-cli/skills/d2l/` into that system's native skill/plugin/instructions directory. If the system has no skill support, continue following this `INSTALL_FOR_AGENTS.md` file and `AGENTS.md` directly.
+
+Verify the skill folder contains:
+
+```text
+skills/d2l/SKILL.md
+skills/d2l/scripts/install.sh
+skills/d2l/scripts/doctor.sh
+skills/d2l/scripts/onboard.sh
+skills/d2l/references/
+```
+
+Do not copy auth files such as `~/.d2l/token.json` into public repos or shared skill registries.
+
+## Step 3: Configure the Institution
 
 Open `src/d2l/config.py` and verify the Brightspace host/version settings match the user's institution.
 
@@ -65,7 +106,7 @@ SYLLABUS_FULL_URL = "https://your-school.simplesyllabus.com/api2/doc-full-page-g
 
 If you are unsure about institution config, ask the user for their Brightspace URL. Do not scrape pages to infer course data.
 
-## Step 3: Authenticate
+## Step 4: Authenticate
 
 Check current auth:
 
@@ -98,7 +139,7 @@ d2l whoami
 
 Do not inspect or scrape course data through the browser. Once auth works, return to CLI commands.
 
-## Step 4: Verify Data Access
+## Step 5: Verify Data Access
 
 Run:
 
@@ -114,7 +155,7 @@ Expected result:
 
 If these fail due to auth or permissions, stop and report the blocker. If a specific command fails but others work, continue only with commands that are relevant and clearly available.
 
-## Step 5: Run Course Onboarding
+## Step 6: Run Course Onboarding
 
 Run the interactive onboarding command:
 
@@ -139,7 +180,7 @@ d2l onboard --yes
 
 Then tell the user the SOP contains placeholders and should be reviewed.
 
-## Step 6: How to Use the Onboarding State
+## Step 7: How to Use the Onboarding State
 
 Before repeating onboarding, check:
 
@@ -157,7 +198,7 @@ If the active course fingerprint still matches, the command reports that onboard
 
 If the course fingerprint changed, ask the user whether to refresh onboarding. This usually means a new term, added/dropped course, or renamed course.
 
-## Step 7: Agent Usage Defaults
+## Step 8: Agent Usage Defaults
 
 Use these command patterns:
 
@@ -194,18 +235,18 @@ Important:
 - If multiple courses match, ask the user to disambiguate or use the numeric ID.
 - Fetch the syllabus before answering grading-policy, course-rule, prerequisite, or instructor-policy questions when available.
 
-## Step 8: Optional Project Integration
+## Step 9: Optional Project Integration
 
 If the user wants their agent project to remember how to use D2L, copy or reference:
 
-- `AGENTS.md` for agent-facing command behavior
+- `skills/d2l/` as the canonical portable agent skill
+- `AGENTS.md` for repo-level agent behavior and full command reference
 - `QUICKSTART.md` for short setup/reference
-- `.claude/skills/d2l/SKILL.md` if the environment supports Claude/OpenClaw-style skills
 - `D2L_COURSE_SOP.md` after onboarding
 
 Do not copy `.d2l/onboarding.json` or `~/.d2l/token.json` into public repos. They are local state/auth files.
 
-## Step 9: Upgrade
+## Step 10: Upgrade
 
 To update the CLI later:
 

@@ -23,7 +23,7 @@ Send this to your AI agent:
 Fetch and follow the instructions from https://github.com/Aaryan-Kapoor/d2l-cli/blob/main/INSTALL_FOR_AGENTS.md
 ```
 
-The agent will install the CLI, handle D2L auth with your help when needed, verify access, and run course onboarding to create `D2L_COURSE_SOP.md`.
+The agent will install the CLI, install the bundled `skills/d2l` skill into its own skill system when supported, handle D2L auth with your help when needed, verify access, and run course onboarding to create `D2L_COURSE_SOP.md`.
 
 ## Example Usage
 
