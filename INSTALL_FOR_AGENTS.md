@@ -24,10 +24,9 @@ If you fetched this file by URL before cloning, companion files live at:
 ```bash
 git clone https://github.com/Aaryan-Kapoor/d2l-cli.git ~/d2l-cli
 cd ~/d2l-cli
-python -m venv .venv
-source .venv/bin/activate
-pip install -e ".[login]"
-playwright install chromium
+python -m pip install --user -e ".[login]"
+export PATH="$(python -m site --user-base)/bin:$PATH"
+python -m playwright install chromium
 ```
 
 Verify:
@@ -37,13 +36,14 @@ d2l --version
 d2l --help
 ```
 
-If `d2l` is not found, either keep using the venv explicitly:
+If `d2l` is not found, add the Python user scripts directory to PATH and persist it in the user's shell profile:
 
 ```bash
-~/d2l-cli/.venv/bin/d2l --version
+export PATH="$(python -m site --user-base)/bin:$PATH"
+printf '\nexport PATH="%s:$PATH"\n' "$(python -m site --user-base)/bin" >> ~/.profile
 ```
 
-or add a shell alias/symlink appropriate for the user's environment.
+Do not rely on an activated virtualenv for normal agent use; agents should be able to run `d2l` directly from PATH.
 
 
 ## Step 2: Install the Agent Skill
@@ -253,8 +253,8 @@ To update the CLI later:
 ```bash
 cd ~/d2l-cli
 git pull origin main
-source .venv/bin/activate
-pip install -e ".[login]"
+python -m pip install --user -e ".[login]"
+export PATH="$(python -m site --user-base)/bin:$PATH"
 d2l --version
 d2l token
 ```

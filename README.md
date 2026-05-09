@@ -42,16 +42,16 @@ Ask your AI agent a natural question — it calls `d2l` under the hood and gives
 ```bash
 git clone https://github.com/Aaryan-Kapoor/d2l-cli.git
 cd d2l-cli
-python -m venv .venv
-source .venv/bin/activate        # Linux/Mac
-source .venv/Scripts/activate    # Windows (Git Bash)
-pip install -e .
+python -m pip install --user -e ".[login]"
+export PATH="$(python -m site --user-base)/bin:$PATH"
+python -m playwright install chromium
+d2l --version
 ```
 
-For browser-based token capture (optional):
+`d2l` is installed as a normal executable on your user PATH, not something you need to run from an activated venv. If your shell cannot find it after install, add this to your shell profile:
+
 ```bash
-pip install -e ".[login]"
-playwright install chromium
+export PATH="$(python -m site --user-base)/bin:$PATH"
 ```
 
 ## Configuration
@@ -162,10 +162,13 @@ d2l --md grades "calc"             # markdown
 
 **Setup steps:**
 
-1. Install `d2l-cli` in the agent's environment:
+1. Install `d2l-cli` onto the user's PATH:
    ```bash
    cd /path/to/d2l-cli
-   pip install -e .
+   python -m pip install --user -e ".[login]"
+   export PATH="$(python -m site --user-base)/bin:$PATH"
+   python -m playwright install chromium
+   d2l --version
    ```
 
 2. Capture a token:
@@ -182,7 +185,7 @@ d2l --md grades "calc"             # markdown
 
    This writes `D2L_COURSE_SOP.md` and `.d2l/onboarding.json`. The state file stores a fingerprint of active courses, so agents can detect that onboarding is already complete and avoid repeating the setup interview unless courses change.
 
-4. Point your agent to this repo (or copy `AGENTS.md` to your project root). For Claude Code specifically, the `.claude/skills/d2l/SKILL.md` is also included.
+4. Point your agent to this repo, copy `AGENTS.md` to your project root, or install the portable skill from `skills/d2l/`.
 
 5. The agent can now run `d2l` commands. Example prompts:
    - *"What's due this week?"*
@@ -214,7 +217,7 @@ For agents running on a headless server (no GUI):
 3. Set up a cron job to refresh the token (session cookies last days/weeks):
    ```bash
    # Refresh token every 45 minutes using saved session cookies
-   */45 * * * * cd /path/to/d2l-cli && .venv/bin/d2l login --headless
+   */45 * * * * d2l login --headless
    ```
 
 ## Key Commands for Agents
@@ -249,10 +252,9 @@ If you're at Kennesaw State University, no configuration needed — it works out
 ```bash
 git clone https://github.com/Aaryan-Kapoor/d2l-cli.git
 cd d2l-cli
-python -m venv .venv
-source .venv/Scripts/activate    # or source .venv/bin/activate on Linux/Mac
-pip install -e ".[login]"
-playwright install chromium
+python -m pip install --user -e ".[login]"
+export PATH="$(python -m site --user-base)/bin:$PATH"
+python -m playwright install chromium
 
 # Log in (opens browser, captures token automatically via KSU SSO)
 d2l login

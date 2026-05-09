@@ -6,9 +6,13 @@ You are an AI agent. This file tells you how to use the `d2l` CLI tool to access
 
 ```bash
 cd /path/to/d2l-cli
-pip install -e .
+python -m pip install --user -e ".[login]"
+export PATH="$(python -m site --user-base)/bin:$PATH"
+python -m playwright install chromium
 d2l login          # user must do this — opens browser for SSO
 ```
+
+`d2l` should be installed on PATH. Do not rely on an activated venv for normal agent use.
 
 ## Check auth
 
@@ -101,4 +105,4 @@ Recommended flow:
 
 ## Skill file
 
-Copy `.claude/skills/d2l/SKILL.md` into your project's skills directory for full integration with Claude Code / OpenClaw / other Agent framework.
+Install or copy the portable skill folder `skills/d2l/` into your agent system's native skills directory. For example, OpenClaw can use `<workspace>/skills/d2l/` or `~/.agents/skills/d2l/`; Claude Code can use `<project>/.claude/skills/d2l/`.
