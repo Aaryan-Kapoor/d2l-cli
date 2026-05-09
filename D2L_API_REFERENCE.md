@@ -341,7 +341,7 @@ Pass `?bookmark={value}` on next call. Walk sequentially — no random page acce
 | Endpoint | Description |
 |----------|-------------|
 | `GET /d2l/api/le/{v}/{orgUnitId}/updates/myUpdates` | Update counts in one course (new messages, grades, etc.) |
-| `GET /d2l/api/le/{v}/updates/myUpdates/` | Update counts across all courses |
+| `GET /d2l/api/le/{v}/updates/myUpdates/` | Update counts across active courses, requires `orgUnitIdsCSV` |
 
 ---
 
@@ -571,7 +571,7 @@ GET /d2l/api/le/{v}/{orgUnitId}/grades/{gradeObjectId}/statistics
 
 ### "What's new?"
 ```
-GET /d2l/api/le/{v}/updates/myUpdates/
+GET /d2l/api/le/{v}/updates/myUpdates/?orgUnitIdsCSV=...
 GET /d2l/api/le/{v}/{orgUnitId}/news/
 GET /d2l/api/lp/{v}/feed/
 ```

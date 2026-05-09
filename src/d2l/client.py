@@ -221,10 +221,11 @@ class D2LClient:
             return data["Objects"]
         return data if isinstance(data, list) else []
 
-    def updates(self, org_id=None):
+    def updates(self, org_id=None, org_ids_csv=None):
         if org_id:
             return self.lms_get(self.le(f"/{org_id}/updates/myUpdates"))
-        return self.lms_get(self.le("/updates/myUpdates/"))
+        params = {"orgUnitIdsCSV": org_ids_csv} if org_ids_csv else None
+        return self.lms_get(self.le("/updates/myUpdates/"), params)
 
     def classlist(self, org_id):
         data = self.lms_get(self.le(f"/{org_id}/classlist/paged/"))
