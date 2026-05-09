@@ -70,7 +70,22 @@ d2l --md dump --shallow            # Just enrollments + due/overdue
 d2l --md dump --since 24           # Only new stuff from last 24 hours
 d2l --md dump --since 48           # Last 2 days
 d2l --json dump                    # Machine-readable JSON
+
+# First-time course workflow setup
+d2l onboard                        # Interactive course SOP setup
+d2l onboard --yes                  # Non-interactive starter SOP
 ```
+
+## Agent Defaults
+
+1. **Read-only only.** Use `d2l` only for read-only Brightspace data. Never submit assignments, post discussions, modify grades, change settings, or perform actions that mutate D2L state.
+2. **Prefer structured output.** Use `--md` or `--json` when processing data. Human/table output is for display only.
+3. **Put global flags before the command.** Use `d2l --md grades "calc"`, not `d2l grades --md "calc"`.
+4. **Handle auth failures safely.** If the token is expired or invalid, first try `d2l login --headless`. If that fails, hangs, or cannot capture a token, ask the user to log in to D2L again. Ask whether you may launch the browser for them, then run `d2l login` so they can complete the login interactively.
+5. **No browser scraping.** Do not use browser automation, page scraping, or in-page JavaScript to retrieve D2L course data. Browser login is only for authentication; course data should come from the CLI/API paths.
+6. **Resolve courses carefully.** Course arguments can be fuzzy names, course codes, or numeric org unit IDs. If multiple courses match, ask the user to disambiguate or use the numeric ID.
+7. **Fetch policy sources first.** For grading policies, course rules, grading weights, prerequisites, or instructor policies, fetch the syllabus first with `d2l --md syllabus COURSE` when available.
+8. **Stop on required-source blockers.** If required D2L data cannot be fetched because of auth, permissions, or missing access, stop and report the blocker. Do not answer from stale, partial, or guessed data unless the user explicitly accepts that tradeoff.
 
 ## Output Formats
 
@@ -92,11 +107,24 @@ Course arguments accept fuzzy names, codes, or numeric IDs:
 
 ## When Token Expires
 
-The D2L token expires every ~1 hour. If you see "Token expired. Run: d2l login", tell the user to run `d2l login` — it will open a browser, auto-capture a fresh token, and save it.
+The D2L token expires every ~1 hour. If the token is expired or invalid, first try:
+
+```bash
+d2l login --headless
+```
+
+If headless login fails, hangs, or cannot capture a token, ask the user whether you may launch the browser for them. If they agree, run:
+
+```bash
+d2l login
+```
+
+The user can complete browser/SSO login interactively, and the CLI will save the refreshed token.
 
 ## Important
 
-- This tool is **strictly read-only**. It cannot submit assignments, post discussions, or modify anything.
+- This tool is **strictly read-only**. It cannot submit assignments, post discussions, modify grades, or change D2L state.
+- Browser login is allowed only for authentication. Do not inspect or scrape course data through the browser.
 - The `d2l dump --md` command is the best way to get full context about the user's academic situation.
 
 ## Syllabus
@@ -106,8 +134,41 @@ The D2L token expires every ~1 hour. If you see "Token expired. Run: d2l login",
 ## Responding to the User
 
 When the user asks about their classes:
-1. Run the appropriate `d2l` command to fetch the data
-2. Parse the output and present it clearly
-3. Offer analysis (grade calculations, upcoming deadline warnings, etc.)
+1. Run the appropriate `d2l` command to fetch the data.
+2. Parse the output and present it clearly.
+3. Offer analysis (grade calculations, upcoming deadline warnings, etc.).
 4. If they ask "what's going on with my classes" or similar broad questions, use `d2l --md dump --shallow` first for a quick overview, then drill into specific courses as needed.
-5. If they ask about grading policies, what grade they need, or course rules — fetch the syllabus first with `d2l --md syllabus COURSE`.
+5. If they ask about grading policies, what grade they need, or course rules, fetch the syllabus first with `d2l --md syllabus COURSE`.
+6. If required D2L data cannot be fetched, stop and explain the blocker instead of guessing.
+
+## Course Onboarding SOP
+
+When the user asks to onboard their courses or set up an academic workflow, use:
+
+```bash
+d2l onboard
+```
+
+The command creates a course-operations SOP file for the current term and a sentinel state file:
+
+```text
+D2L_COURSE_SOP.md
+.d2l/onboarding.json
+```
+
+The state file stores a fingerprint of the active course list. On future runs, if `.d2l/onboarding.json` exists, the SOP file exists, and the course fingerprint still matches, onboarding is already complete. Read the SOP instead of repeating the interview. If the fingerprint changed, ask the user whether to refresh onboarding.
+
+Onboarding flow:
+
+1. Check auth with `d2l token`. If needed, follow the auth flow above.
+2. Run `d2l onboard` for interactive setup, or `d2l onboard --yes` to generate a starter SOP without prompts.
+3. Interview the user briefly about each course: grading style, professor quirks, where deadlines are authoritative, recurring weekly rhythm, external tools, and what kind of help they want from an agent.
+4. The generated SOP includes:
+   - course list and IDs
+   - source-of-truth hierarchy for each course (D2L due dates, syllabus, weekly modules, external docs, etc.)
+   - per-course workflow/check cadence
+   - grading/policy notes
+   - common commands to run
+   - known ambiguities or missing info
+   - explicit rules for when to stop and ask the user
+5. Keep the SOP factual and user-specific, but avoid hard-coding private credentials or secrets.

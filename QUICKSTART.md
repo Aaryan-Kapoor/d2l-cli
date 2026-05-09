@@ -16,7 +16,19 @@ d2l login          # user must do this — opens browser for SSO
 d2l token          # shows token status + time remaining
 ```
 
-If token is expired, tell the user to run `d2l login`.
+If the token is expired or invalid, first try:
+
+```bash
+d2l login --headless
+```
+
+If that fails, hangs, or cannot capture a token, ask the user whether you may launch the browser for them. If they agree, run:
+
+```bash
+d2l login
+```
+
+The user can complete browser/SSO login interactively. Do not scrape D2L course data through the browser; use the CLI/API after login.
 
 ## Commands
 
@@ -41,6 +53,8 @@ d2l --md dump                               # full academic snapshot
 d2l --md dump --since 24                    # what's new in last 24 hours
 d2l --md dump --course "course name"        # one course only
 d2l --json dump                             # machine-readable JSON
+d2l onboard                                 # interactive course SOP setup
+d2l onboard --yes                           # non-interactive starter SOP
 ```
 
 Course names are fuzzy — `"calc"`, `"data structures"`, `"econ"` all work.
@@ -52,6 +66,38 @@ Course names are fuzzy — `"calc"`, `"data structures"`, `"econ"` all work.
 - `--json`: structured JSON (for parsing)
 
 Put the flag before the command: `d2l --md grades "calc"`
+
+## Safety defaults
+
+- Use `d2l` only for read-only Brightspace data.
+- Never submit assignments, post discussions, modify grades, change settings, or perform actions that mutate D2L state.
+- Do not use browser automation, page scraping, or in-page JavaScript to retrieve D2L course data.
+- If required D2L data cannot be fetched because of auth, permissions, or missing access, stop and report the blocker instead of guessing.
+- For grading policies, course rules, grading weights, prerequisites, or instructor policies, fetch the syllabus first with `d2l --md syllabus COURSE` when available.
+
+## Course onboarding
+
+For a first-time setup, use:
+
+```bash
+d2l onboard
+```
+
+This interviews the user about active courses and writes:
+
+```text
+D2L_COURSE_SOP.md
+.d2l/onboarding.json
+```
+
+The state file stores a fingerprint of the active course list. On future runs, if the state file and SOP exist and the fingerprint still matches, onboarding is already done. Read the SOP instead of repeating setup. If the active course list changes, refresh onboarding with user confirmation.
+
+Recommended flow:
+
+1. Check auth with `d2l token`.
+2. Run `d2l onboard` for interactive setup, or `d2l onboard --yes` for a starter SOP without prompts.
+3. Ask about each course's real source of truth, weekly rhythm, grading style, external tools, and what help the user wants.
+4. Let the generated SOP capture course IDs, source-of-truth hierarchy, per-course workflow, check cadence, grading/policy notes, common commands, ambiguities, and stop/ask rules.
 
 ## Skill file
 

@@ -125,6 +125,9 @@ Downloads:
 
 AI Snapshot:
   dump [--course X] [--shallow] [--since N] [--include TYPE]
+
+Onboarding:
+  onboard [--output FILE] [--force] [--yes]  Create/update course SOP + onboarding state
 ```
 
 All COURSE arguments accept fuzzy names (`"data structures"`), course codes, or numeric org unit IDs.
@@ -160,9 +163,18 @@ d2l --md grades "calc"             # markdown
    d2l login
    ```
 
-3. Point your agent to this repo (or copy `AGENTS.md` to your project root). For Claude Code specifically, the `.claude/skills/d2l/SKILL.md` is also included.
+   If a saved token expires later, agents should try `d2l login --headless` first. If that fails, ask the user before launching `d2l login` for interactive browser login. Browser login is only for authentication; do not scrape course data through the browser.
 
-4. The agent can now run `d2l` commands. Example prompts:
+3. Optionally run first-time course onboarding:
+   ```bash
+   d2l onboard
+   ```
+
+   This writes `D2L_COURSE_SOP.md` and `.d2l/onboarding.json`. The state file stores a fingerprint of active courses, so agents can detect that onboarding is already complete and avoid repeating the setup interview unless courses change.
+
+4. Point your agent to this repo (or copy `AGENTS.md` to your project root). For Claude Code specifically, the `.claude/skills/d2l/SKILL.md` is also included.
+
+5. The agent can now run `d2l` commands. Example prompts:
    - *"What's due this week?"*
    - *"How am I doing in data structures?"*
    - *"Download the starter code for assignment 6"*
@@ -215,6 +227,9 @@ d2l download "data structures" "trees" -o ./assignment
 
 # Download lecture notes
 d2l download-content "calc" "Unit 3 Materials" -o ./notes
+
+# First-time course SOP setup
+d2l onboard
 ```
 
 ## KSU Quick Start
