@@ -209,9 +209,9 @@ def login(headless):
         )
         raise SystemExit(1)
 
-    from d2l.config import TOKEN_DIR, TOKEN_FILE, BROWSER_PROFILE
+    from d2l.config import LMS_HOST, TOKEN_DIR, TOKEN_FILE, BROWSER_PROFILE
 
-    d2l_url = "https://kennesaw.view.usg.edu/d2l/home"
+    d2l_url = f"{LMS_HOST.rstrip('/')}/d2l/home"
     captured_token = None
     captured_claims = None
 

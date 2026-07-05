@@ -3,3 +3,5 @@ __pycache__/
 .venv/
 *.egg-info/
 .d2l/
+D2L_COURSE_SOP*.md
+.claude/settings.local.json

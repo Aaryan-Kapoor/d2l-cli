@@ -1,3 +1,9 @@
+---
+name: d2l
+description: Fetch read-only academic data from D2L Brightspace and run course onboarding. Use when the user asks about courses, grades, assignments, due dates, quizzes, syllabi, announcements, course content, downloads, academic status, or first-time academic workflow setup.
+metadata: {"openclaw":{"emoji":"🎓","requires":{"bins":["d2l"]}}}
+---
+
 # D2L Brightspace Academic Data
 
 You have access to the `d2l` CLI tool which fetches READ-ONLY data from the user's D2L Brightspace LMS.
@@ -78,7 +84,7 @@ d2l onboard --yes                  # Non-interactive starter SOP
 
 ## Agent Defaults
 
-1. **Read-only only.** Use `d2l` only for read-only Brightspace data. Never submit assignments, post discussions, modify grades, change settings, or perform actions that mutate D2L state.
+1. **Read-only only.** Use `d2l` only for read-only Brightspace data. Never submit assignments, post discussions, modify grades, change settings, mark items complete/read, or perform actions that mutate D2L state.
 2. **Prefer structured output.** Use `--md` or `--json` when processing data. Human/table output is for display only.
 3. **Put global flags before the command.** Use `d2l --md grades "calc"`, not `d2l grades --md "calc"`.
 4. **Handle auth failures safely.** If the token is expired or invalid, first try `d2l login --headless`. If that fails, hangs, or cannot capture a token, ask the user to log in to D2L again. Ask whether you may launch the browser for them, then run `d2l login` so they can complete the login interactively.
@@ -172,3 +178,13 @@ Onboarding flow:
    - known ambiguities or missing info
    - explicit rules for when to stop and ask the user
 5. Keep the SOP factual and user-specific, but avoid hard-coding private credentials or secrets.
+
+## Optional bundled helpers
+
+The skill folder includes helper scripts. Use them only when appropriate for the user's environment:
+
+- `{baseDir}/scripts/install.sh` installs the CLI from the current repo checkout.
+- `{baseDir}/scripts/doctor.sh` verifies CLI/auth/course access.
+- `{baseDir}/scripts/onboard.sh` runs the onboarding checks and creates the SOP/state files.
+
+For extra detail, read the reference files in `{baseDir}/references/` only when needed.
