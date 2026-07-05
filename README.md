@@ -290,7 +290,7 @@ Token expires every ~1 hour. Just run `d2l login` again — your SSO session coo
 
 ## Strictly Read-Only
 
-This tool only performs GET requests. It cannot submit assignments, post discussions, modify grades, or change anything on D2L. By design.
+Course-data commands are read-only. The CLI cannot submit assignments, post discussions, modify grades, or change anything on D2L. By design.
 
 ## Disclaimer
 
