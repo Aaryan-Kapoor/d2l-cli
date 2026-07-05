@@ -33,12 +33,13 @@ def _run(cmd):
 
 
 @click.command()
-@click.option("--ref", help="Git branch or tag to install (default: latest main)")
+@click.option("--ref", help="Install a specific git branch or tag from GitHub instead of the PyPI release")
 def update(ref):
-    """Update d2l-cli to the latest release from GitHub.
+    """Update d2l-cli to the latest release.
 
     Works for any install style: a local git checkout is pulled in place,
-    anything else is reinstalled from the repo with pip (pipx venvs included).
+    anything else is upgraded from PyPI with pip (pipx venvs included).
+    Pass --ref to install a specific branch or tag straight from GitHub.
     """
     info = _direct_url() or {}
     url = info.get("url", "")
@@ -62,8 +63,11 @@ def update(ref):
         click.echo("[OK] Updated from local checkout. Run: d2l --version")
         return
 
-    spec = f"d2l-cli{_extras()} @ {GIT_URL}" + (f"@{ref}" if ref else "")
-    code = _run([sys.executable, "-m", "pip", "install", "--upgrade", "--force-reinstall", spec])
+    if ref:
+        spec = f"d2l-cli{_extras()} @ {GIT_URL}@{ref}"
+        code = _run([sys.executable, "-m", "pip", "install", "--upgrade", "--force-reinstall", spec])
+    else:
+        code = _run([sys.executable, "-m", "pip", "install", "--upgrade", f"d2l-cli{_extras()}"])
     if code != 0:
         click.echo("[!] Update failed.", err=True)
         raise SystemExit(code)

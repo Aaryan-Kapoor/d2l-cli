@@ -15,19 +15,32 @@ These rules apply during setup and forever after:
 
 ## Step 1: Install the CLI
 
-No repo clone is needed — install straight from git:
+Install from PyPI. If `pipx` is available, prefer it (it puts `d2l` on PATH automatically):
 
 ```bash
-python -m pip install --user "d2l-cli[login] @ git+https://github.com/Aaryan-Kapoor/d2l-cli.git"
-export PATH="$(python -m site --user-base)/bin:$PATH"
+pipx install "d2l-cli[login]"
 d2l --version
 ```
 
-If `d2l` is not found, persist the user scripts directory on PATH:
+Otherwise use pip (`py` instead of `python` on Windows if `python` is not found):
 
 ```bash
-printf '\nexport PATH="%s:$PATH"\n' "$(python -m site --user-base)/bin" >> ~/.profile
+python -m pip install --user "d2l-cli[login]"
+d2l --version
 ```
+
+If `d2l` is not found after the pip install, Python's user scripts directory is not on PATH. Find it:
+
+```bash
+python -c "import os, sysconfig; print(sysconfig.get_path('scripts', f'{os.name}_user'))"
+```
+
+Then put it on PATH and persist it:
+
+- **macOS / Linux:** `export PATH="<that dir>:$PATH"` for now, and append the same line to `~/.profile` (or the user's shell rc file).
+- **Windows (PowerShell):** persist with
+  `[Environment]::SetEnvironmentVariable("Path", "<that dir>;" + [Environment]::GetEnvironmentVariable("Path", "User"), "User")`
+  and for the current session run `$env:Path = "<that dir>;$env:Path"`.
 
 Notes:
 

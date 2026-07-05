@@ -47,18 +47,22 @@ class UpdateTests(unittest.TestCase):
         self.assertIn("pip", self.commands[1])
         self.assertIn("/home/me/d2l-cli[login]", self.commands[1])
 
-    def test_package_install_reinstalls_from_git(self):
+    def test_package_install_upgrades_from_pypi(self):
         with patch.object(update_cmd, "_direct_url", return_value=None):
             result = self.runner.invoke(update_cmd.update)
         self.assertEqual(result.exit_code, 0, result.output)
         self.assertEqual(len(self.commands), 1)
-        self.assertIn("--force-reinstall", self.commands[0])
-        self.assertIn(f"d2l-cli[login] @ {update_cmd.GIT_URL}", self.commands[0])
+        self.assertIn("--upgrade", self.commands[0])
+        self.assertEqual(self.commands[0][-1], "d2l-cli[login]")
+        self.assertNotIn("--force-reinstall", self.commands[0])
 
-    def test_ref_option_pins_branch(self):
+    def test_ref_option_installs_from_git(self):
         with patch.object(update_cmd, "_direct_url", return_value=None):
             result = self.runner.invoke(update_cmd.update, ["--ref", "v0.2.0"])
         self.assertEqual(result.exit_code, 0, result.output)
+        self.assertEqual(len(self.commands), 1)
+        self.assertIn("--force-reinstall", self.commands[0])
+        self.assertIn(f"d2l-cli[login] @ {update_cmd.GIT_URL}", self.commands[0][-1])
         self.assertTrue(self.commands[0][-1].endswith(".git@v0.2.0"))
 
     def test_failed_pull_aborts(self):
