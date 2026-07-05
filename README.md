@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="banner.svg" alt="d2l-cli — your classes, in your AI agent" width="100%"/>
+  <img src="assets/banner.gif" alt="A student tells their AI agent: im cooked, calc exam friday — the agent reads the syllabus, downloads the lectures, and starts a quiz, then the scene zooms out to the d2l-cli banner" width="100%"/>
 </p>
 
 <p align="center">

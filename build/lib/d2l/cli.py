@@ -3,7 +3,26 @@ import click
 from d2l.auth import load_token, make_session
 from d2l.client import D2LClient
 from d2l.config import get_lms_host
+from d2l.errors import TokenExpiredError, TokenNotFoundError
 from d2l.formatting import set_format, OutputFormat
+
+
+def _resolve_token():
+    """Load the saved token, transparently refreshing it via a silent
+    headless login when it is missing or expired. Only when that fails does
+    the user need to sign in interactively with `d2l login`."""
+    try:
+        return load_token()
+    except (TokenExpiredError, TokenNotFoundError) as e:
+        from d2l.commands.auth_cmd import attempt_auto_login
+
+        if attempt_auto_login():
+            click.echo("[*] Signed in automatically using your saved session.", err=True)
+            return load_token()
+        raise e.__class__(
+            "Your D2L session needs a fresh sign-in. Run: d2l login "
+            "(a browser window will open — log in like normal)"
+        ) from e
 
 
 def _make_client_factory():
@@ -13,7 +32,7 @@ def _make_client_factory():
     def factory():
         if "client" not in state:
             get_lms_host()  # fail on missing school config before token checks
-            token = load_token()
+            token = _resolve_token()
             session = make_session(token)
             state["client"] = D2LClient(session)
         return state["client"]
