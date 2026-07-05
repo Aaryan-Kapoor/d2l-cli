@@ -104,8 +104,8 @@
 </style>
 </head>
 <body>
-<div id="root" data-composition-id="main" data-start="0" data-width="1200" data-height="600" data-duration="19">
-  <section id="scene" class="clip" data-start="0" data-duration="19" data-track-index="1">
+<div id="root" data-composition-id="main" data-start="0" data-width="1200" data-height="600" data-duration="22">
+  <section id="scene" class="clip" data-start="0" data-duration="22" data-track-index="1">
     <div id="paper"></div>
 
     <div id="banner">
@@ -113,7 +113,7 @@
       <div id="tagline"><span class="w tg">Your</span> <span class="w tg">classes,</span> <span class="w tg">in</span> <span class="w tg">your</span> <span class="w tg" style="position:relative">AI&nbsp;agent.<span id="tag-underline"></span></span></div>
       <div id="fliprow">
         <span class="rowlabel">ASK ABOUT</span>
-        <div id="flipmask"><div id="flipstack"><span class="flipword">grades</span><span class="flipword">due dates</span><span class="flipword">syllabi</span><span class="flipword">lecture files</span></div></div>
+        <div id="flipmask"><div id="flipstack"><span class="flipword">grades</span><span class="flipword">due dates</span><span class="flipword">syllabi</span><span class="flipword">lecture files</span><span class="flipword">grades</span><span class="flipword">due dates</span></div></div>
       </div>
       <div id="badges">
         <span class="badge green" id="badge1"><svg viewBox="0 0 16 16" width="15" height="15"><path d="M2.5 8.5 6 12 13.5 4" fill="none" stroke="#2F9E62" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg> read-only by design</span>
@@ -176,7 +176,7 @@ window.__timelines = window.__timelines || {};
 const tl = gsap.timeline({ paused: true });
 
 // caret: 1s blink cycle, phase-locked so t=19 matches t=0 (on)
-for (let i = 0; i < 19; i++) {
+for (let i = 0; i < 22; i++) {
   tl.to("#caret", { opacity: 0, duration: 0.001 }, i + 0.6);
   tl.to("#caret", { opacity: 1, duration: 0.001 }, i + 1.0);
 }
@@ -224,6 +224,8 @@ tl.to("#fliprow", { opacity: 1, duration: 0.35 }, 14.7);
 tl.to("#flipstack", { y: -44, duration: 0.45, ease: "power2.inOut" }, 15.5);
 tl.to("#flipstack", { y: -88, duration: 0.45, ease: "power2.inOut" }, 16.3);
 tl.to("#flipstack", { y: -132, duration: 0.45, ease: "power2.inOut" }, 17.1);
+tl.to("#flipstack", { y: -176, duration: 0.45, ease: "power2.inOut" }, 18.5);
+tl.to("#flipstack", { y: -220, duration: 0.45, ease: "power2.inOut" }, 19.7);
 tl.to("#badge1", { opacity: 1, duration: 0.3 }, 15.1);
 tl.to("#badge2", { opacity: 1, duration: 0.3 }, 15.3);
 tl.to("#ww-label", { opacity: 1, duration: 0.3 }, 15.7);
@@ -233,11 +235,11 @@ tl.to("#ww-more", { opacity: 1, duration: 0.3 }, 16.6);
 tl.to("#strip", { opacity: 1, duration: 0.4 }, 16.9);
 
 // loop out: back to the empty chat
-tl.to("#banner", { opacity: 0, duration: 0.4 }, 17.7);
-tl.to("#chat-wrap", { x: 0, y: 0, scale: 1, duration: 0.8, ease: "power2.inOut" }, 18.0);
+tl.to("#banner", { opacity: 0, duration: 0.4 }, 20.6);
+tl.to("#chat-wrap", { x: 0, y: 0, scale: 1, duration: 0.8, ease: "power2.inOut" }, 20.9);
 tl.to("#chat-card", { borderRadius: 0, borderColor: "rgba(226,217,196,0)",
-  boxShadow: "0 0 0 rgba(0,0,0,0)", duration: 0.6 }, 18.1);
-tl.to(["#bubble", "#airow", "#aicol", "#quiz"], { opacity: 0, duration: 0.45 }, 18.25);
+  boxShadow: "0 0 0 rgba(0,0,0,0)", duration: 0.6 }, 21.0);
+tl.to(["#bubble", "#airow", "#aicol", "#quiz"], { opacity: 0, duration: 0.45 }, 21.15);
 
 window.__timelines["main"] = tl;
 tl.seek(0);
