@@ -56,6 +56,15 @@ def _filename_from_response(response, fallback):
     return fallback
 
 
+def _safe_filename(name, fallback):
+    """Strip any path components from a server-supplied filename so it can
+    never escape the output directory."""
+    name = Path(str(name).replace("\\", "/")).name.strip()
+    if name in ("", ".", ".."):
+        return fallback
+    return name
+
+
 # --- Assignment helpers ---
 
 def _match_assignment(assignments, query):
@@ -128,7 +137,7 @@ def download(ctx, course, assignment, out_dir):
     click.echo(f"Downloading {len(attachments)} file(s) from '{folder_name}'...")
     for att in attachments:
         file_id = att["FileId"]
-        file_name = att["FileName"]
+        file_name = _safe_filename(att["FileName"], f"file_{file_id}")
         dest = out_path / file_name
 
         r = client.assignment_attachment(org_id, folder_id, file_id)
@@ -225,7 +234,7 @@ def download_content(ctx, course, module, out_dir):
             click.echo(f"  [skip] {title} (not accessible)")
             continue
 
-        file_name = _filename_from_response(r, title)
+        file_name = _safe_filename(_filename_from_response(r, title), f"file_{topic_id}")
         dest = out_path / file_name
         dest.write_bytes(r.content)
         size_kb = len(r.content) / 1024

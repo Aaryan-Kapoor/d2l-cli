@@ -59,9 +59,11 @@ def _load_env_token(token, source_name):
 def load_token():
     """Load bearer token from ~/.d2l/token.json > .env > D2L_TOKEN env var.
 
-    Raises TokenExpiredError if found but expired.
+    An expired token.json no longer blocks the env fallbacks.
+    Raises TokenExpiredError if only an expired token was found.
     Raises TokenNotFoundError if not found.
     """
+    expired_error = None
     data = _read_token_file()
     if data is not None:
         token = data.get("token") if isinstance(data, dict) else None
@@ -72,22 +74,28 @@ def load_token():
         exp = claims.get("exp", data.get("exp", 0))
         if exp > time.time():
             return token
-        raise TokenExpiredError(
+        expired_error = TokenExpiredError(
             f"Token expired at {time.ctime(exp)}. Run: d2l login"
         )
 
-    env_path = os.path.join(os.getcwd(), ".env")
-    if os.path.exists(env_path):
-        for line in open(env_path):
-            if line.startswith("D2L_TOKEN="):
-                return _load_env_token(
-                    line.strip().split("=", 1)[1], ".env D2L_TOKEN"
-                )
+    try:
+        env_path = os.path.join(os.getcwd(), ".env")
+        if os.path.exists(env_path):
+            for line in open(env_path):
+                if line.startswith("D2L_TOKEN="):
+                    return _load_env_token(
+                        line.strip().split("=", 1)[1], ".env D2L_TOKEN"
+                    )
 
-    env_token = _load_env_token(os.environ.get("D2L_TOKEN"), "D2L_TOKEN")
-    if env_token:
-        return env_token
+        env_token = _load_env_token(os.environ.get("D2L_TOKEN"), "D2L_TOKEN")
+        if env_token:
+            return env_token
+    except TokenNotFoundError:
+        if expired_error is None:
+            raise
 
+    if expired_error:
+        raise expired_error
     raise TokenNotFoundError("No bearer token found. Run: d2l login")
 
 

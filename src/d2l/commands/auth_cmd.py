@@ -247,7 +247,8 @@ def login(headless, channel):
         from playwright.sync_api import sync_playwright
     except ImportError:
         click.echo(
-            "Playwright not installed. Run: pip install playwright && playwright install chromium",
+            'Playwright not installed. Run: pip install "d2l-cli[login]" '
+            "(no browser download needed if Chrome or Edge is installed)",
             err=True,
         )
         raise SystemExit(1)

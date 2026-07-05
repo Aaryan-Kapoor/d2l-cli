@@ -11,11 +11,11 @@
 
 # d2l-cli
 
-Read-only CLI for D2L Brightspace. Pulls grades, assignments, content, syllabi, and more — designed to be used by AI coding agents (Claude Code, OpenClaw, etc.) as a tool.
+Read-only CLI for D2L Brightspace. Pulls grades, assignments, content, syllabi, and more — designed to be used by AI coding agents (Claude Code, OpenClaw, etc.) as a tool. Works with any school on Brightspace; Kennesaw State and Georgia State ship as one-word presets.
 
 > **AI agents:** See [INSTALL_FOR_AGENTS.md](INSTALL_FOR_AGENTS.md) for end-to-end setup, [AGENTS.md](AGENTS.md) for the full command reference, or [QUICKSTART.md](QUICKSTART.md) for short setup.
 
-## Set Up With Your Agent
+## Set Up With Your Agent (recommended)
 
 Send this to your AI agent:
 
@@ -23,7 +23,7 @@ Send this to your AI agent:
 Fetch and follow the instructions from https://raw.githubusercontent.com/Aaryan-Kapoor/d2l-cli/main/INSTALL_FOR_AGENTS.md
 ```
 
-The agent will install the CLI, install the bundled `skills/d2l` skill into its own skill system when supported, handle D2L auth with your help when needed, verify access, and run course onboarding to create `D2L_COURSE_SOP.md`.
+The agent installs the CLI, asks which school you attend, configures it with `d2l setup`, installs the bundled agent skill into its own skill system, walks you through browser login when needed, verifies access with `d2l doctor`, and runs course onboarding to create `D2L_COURSE_SOP.md`. Your only jobs: tell it your school, and complete your normal SSO login when a browser window opens.
 
 ## Example Usage
 
@@ -37,77 +37,59 @@ Ask your AI agent a natural question — it calls `d2l` under the hood and gives
 
 ![Claude Code checking due dates across courses and listing upcoming items](assets/due-demo.png)
 
-## Setup
+## Manual Setup
+
+Three commands — no clone, no venv, no config files to edit:
 
 ```bash
-git clone https://github.com/Aaryan-Kapoor/d2l-cli.git
-cd d2l-cli
-python -m pip install --user -e ".[login]"
-export PATH="$(python -m site --user-base)/bin:$PATH"
-python -m playwright install chromium
-d2l --version
+pipx install "d2l-cli[login] @ git+https://github.com/Aaryan-Kapoor/d2l-cli.git"
+d2l setup       # pick your school
+d2l login       # browser opens — log in like normal, token captured automatically
 ```
 
-`d2l` is installed as a normal executable on your user PATH, not something you need to run from an activated venv. If your shell cannot find it after install, add this to your shell profile:
-
-```bash
-export PATH="$(python -m site --user-base)/bin:$PATH"
-```
+No pipx? `python -m pip install --user "d2l-cli[login] @ git+https://github.com/Aaryan-Kapoor/d2l-cli.git"` works too (make sure `$(python -m site --user-base)/bin` is on your PATH).
 
 ## Configuration
 
-Edit `src/d2l/config.py` with your institution's details:
+`d2l setup` stores your school in `~/.d2l/config.json`:
 
-```python
-LMS_HOST = "https://your-school.view.usg.edu"     # your Brightspace URL
-TENANT_ID = "your-tenant-id-here"                  # from browser network tab
+```bash
+d2l setup                        # interactive school picker
+d2l setup --school ksu           # Kennesaw State preset
+d2l setup --school gsu           # Georgia State preset
+d2l setup --host https://your-school.view.usg.edu   # any Brightspace school
+d2l setup --syllabus-host https://your-school.simplesyllabus.com   # optional
+d2l setup --show                 # current config
 ```
 
-For SimpleSyllabus integration, edit `src/d2l/commands/syllabus.py`:
-```python
-SYLLABUS_SEARCH_URL = "https://your-school.simplesyllabus.com/api2/syllabus-search"
-SYLLABUS_FULL_URL = "https://your-school.simplesyllabus.com/api2/doc-full-page-get"
-```
+Per-run overrides: `D2L_HOST` and `D2L_SYLLABUS_HOST` environment variables.
 
 ## Authentication
 
 D2L uses a Bearer token (JWT) that expires every ~1 hour.
 
-**Option A — Browser capture (recommended):**
 ```bash
 d2l login                 # opens browser, captures token automatically
 d2l login --headless      # headless mode (reuses saved session cookies)
+d2l token                 # check token status
 ```
 
-**Option B — Manual:**
-1. Open DevTools (F12) on your D2L site
-2. Network tab → find any request to `*.api.brightspace.com`
-3. Copy the `Authorization: Bearer ...` token
-4. Save to `~/.d2l/token.json`:
-```json
-{
-  "token": "eyJ...",
-  "exp": 1773515217,
-  "sub": "your-user-id",
-  "tenant": "your-tenant-id",
-  "captured_at": 1773511617
-}
-```
-
-Check token status:
-```bash
-d2l token
-```
+`d2l login` uses Playwright's bundled Chromium if installed, and automatically falls back to your installed Chrome or Edge — so `playwright install chromium` is optional on most machines. Pin one with `--channel chrome|msedge|chromium`.
 
 ## Commands
 
 ```
 d2l [--json | --md] <command>
 
+Setup:
+  setup [--school NAME | --host URL]   Configure your school (stored in ~/.d2l/config.json)
+  doctor                               Diagnose config/auth/API state + next step
+  skill install DIR                    Install the bundled agent skill
+
 Identity:
-  login [--headless]              Browser-based token capture
-  token                           Token status (no API call)
-  whoami                          Current user info
+  login [--headless] [--channel X]     Browser-based token capture
+  token                                Token status (no API call)
+  whoami                               Current user info
 
 Courses:
   courses [--all]                 List enrolled courses
@@ -164,30 +146,34 @@ d2l --md grades "calc"             # markdown
 
 1. Install `d2l-cli` onto the user's PATH:
    ```bash
-   cd /path/to/d2l-cli
-   python -m pip install --user -e ".[login]"
+   python -m pip install --user "d2l-cli[login] @ git+https://github.com/Aaryan-Kapoor/d2l-cli.git"
    export PATH="$(python -m site --user-base)/bin:$PATH"
-   python -m playwright install chromium
    d2l --version
    ```
 
-2. Capture a token:
+2. Ask the user which school they attend, then configure it:
+   ```bash
+   d2l setup --school ksu          # or gsu, or --host <their Brightspace URL>
+   ```
+
+3. Capture a token:
    ```bash
    d2l login
    ```
 
    If a saved token expires later, agents should try `d2l login --headless` first. If that fails, ask the user before launching `d2l login` for interactive browser login. Browser login is only for authentication; do not scrape course data through the browser.
 
-3. Optionally run first-time course onboarding:
+4. Install the bundled skill into the agent's skill system and run onboarding:
    ```bash
+   d2l skill install ~/.claude/skills/d2l    # or the agent system's skill dir
    d2l onboard
    ```
 
-   This writes `D2L_COURSE_SOP.md` and `.d2l/onboarding.json`. The state file stores a fingerprint of active courses, so agents can detect that onboarding is already complete and avoid repeating the setup interview unless courses change.
+   Onboarding writes `D2L_COURSE_SOP.md` and `.d2l/onboarding.json`. The state file stores a fingerprint of active courses, so agents can detect that onboarding is already complete and avoid repeating the setup interview unless courses change.
 
-4. Point your agent to this repo, copy `AGENTS.md` to your project root, or install the portable skill from `skills/d2l/`.
+5. At any point, `d2l --json doctor` reports every setup check with the exact next command to run.
 
-5. The agent can now run `d2l` commands. Example prompts:
+6. The agent can now run `d2l` commands. Example prompts:
    - *"What's due this week?"*
    - *"How am I doing in data structures?"*
    - *"Download the starter code for assignment 6"*
@@ -245,18 +231,15 @@ d2l download-content "calc" "Unit 3 Materials" -o ./notes
 d2l onboard
 ```
 
-## KSU Quick Start
-
-If you're at Kennesaw State University, no configuration needed — it works out of the box.
+## Student Quick Start
 
 ```bash
-git clone https://github.com/Aaryan-Kapoor/d2l-cli.git
-cd d2l-cli
-python -m pip install --user -e ".[login]"
-export PATH="$(python -m site --user-base)/bin:$PATH"
-python -m playwright install chromium
+pipx install "d2l-cli[login] @ git+https://github.com/Aaryan-Kapoor/d2l-cli.git"
 
-# Log in (opens browser, captures token automatically via KSU SSO)
+# Pick your school (KSU and GSU are presets; any Brightspace URL works)
+d2l setup
+
+# Log in (opens browser, captures token automatically via your school's SSO)
 d2l login
 
 # See your courses
@@ -284,7 +267,7 @@ d2l download-content "calc" "Exam Preparation" -o ./exam-prep
 d2l --md dump
 ```
 
-KSU's SimpleSyllabus integration is built in — `d2l syllabus` fetches directly from `kennesaw.simplesyllabus.com` (no auth required).
+`d2l syllabus` uses SimpleSyllabus (no auth required). The KSU preset configures it automatically; other schools can add theirs with `d2l setup --syllabus-host`.
 
 Token expires every ~1 hour. Just run `d2l login` again — your SSO session cookies persist so it's instant (no re-login).
 

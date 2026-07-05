@@ -5,6 +5,12 @@ You have access to the `d2l` CLI tool which fetches READ-ONLY data from the user
 ## Quick Reference
 
 ```bash
+# Setup & diagnosis
+d2l --json doctor                  # Full setup state + the exact next command to run
+d2l setup --list-schools           # Known school presets
+d2l setup --school gsu             # Configure a preset school
+d2l setup --host https://your-school.view.usg.edu   # Any Brightspace school
+
 # Identity & auth
 d2l token                          # Check if token is valid
 d2l whoami                         # Current user info
@@ -75,6 +81,17 @@ d2l --json dump                    # Machine-readable JSON
 d2l onboard                        # Interactive course SOP setup
 d2l onboard --yes                  # Non-interactive starter SOP
 ```
+
+## First-Time Setup
+
+Run `d2l --json doctor` before anything else. It reports every setup check
+(config, token, API access, courses, onboarding) with a `next_step` command —
+follow it instead of guessing state.
+
+If no school is configured, ask the user which school they attend, then run
+`d2l setup --school NAME` (see `d2l setup --list-schools`) or
+`d2l setup --host <their Brightspace URL>`. Never edit source files to
+configure a school.
 
 ## Agent Defaults
 
