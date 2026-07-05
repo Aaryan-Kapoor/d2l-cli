@@ -4,15 +4,24 @@ import json
 import click
 import requests
 
-from d2l.errors import handle_errors, D2LError
+from d2l.config import get_syllabus_host
+from d2l.errors import handle_errors, D2LError, ConfigError
 from d2l.formatting import get_format, OutputFormat, output, section
 from d2l.resolver import CourseResolver
 
-SYLLABUS_SEARCH_URL = "https://kennesaw.simplesyllabus.com/api2/syllabus-search"
-SYLLABUS_FULL_URL = "https://kennesaw.simplesyllabus.com/api2/doc-full-page-get"
-
 # Regex to strip HTML tags for plain text extraction
 _TAG_RE = re.compile(r"<[^>]+>")
+
+
+def _syllabus_host():
+    host = get_syllabus_host()
+    if not host:
+        raise ConfigError(
+            "No SimpleSyllabus site configured for your school. If your school "
+            "uses SimpleSyllabus, run: d2l setup --syllabus-host "
+            "https://your-school.simplesyllabus.com"
+        )
+    return host
 
 
 def _extract_crn(enrollment):
@@ -26,7 +35,7 @@ def _extract_crn(enrollment):
 
 def _find_syllabus_id(crn):
     """Search SimpleSyllabus for a course by CRN, return syllabus_id or None."""
-    r = requests.get(SYLLABUS_SEARCH_URL, params={"search": crn})
+    r = requests.get(f"{_syllabus_host()}/api2/syllabus-search", params={"search": crn})
     if r.status_code != 200:
         return None
     data = r.json()
@@ -38,7 +47,7 @@ def _find_syllabus_id(crn):
 
 def _fetch_syllabus(syllabus_id):
     """Fetch full syllabus document from SimpleSyllabus. Returns doc_data dict."""
-    r = requests.get(SYLLABUS_FULL_URL, params={"code": syllabus_id})
+    r = requests.get(f"{_syllabus_host()}/api2/doc-full-page-get", params={"code": syllabus_id})
     if r.status_code != 200:
         return None
     data = r.json()
@@ -100,7 +109,7 @@ def syllabus(ctx, course, raw):
             "course": name,
             "crn": crn,
             "syllabus_id": syllabus_id,
-            "url": f"https://kennesaw.simplesyllabus.com/en-US/doc/{syllabus_id}/",
+            "url": f"{_syllabus_host()}/en-US/doc/{syllabus_id}/",
             "title": doc.get("title"),
             "sub_title": doc.get("sub_title"),
             "term": doc.get("term", {}).get("name"),
@@ -127,7 +136,7 @@ def syllabus(ctx, course, raw):
     if doc.get("sub_title"):
         print(f"Course: {doc['sub_title']}")
     print(f"Term: {doc.get('term', {}).get('name', '?')}")
-    print(f"URL: https://kennesaw.simplesyllabus.com/en-US/doc/{syllabus_id}/")
+    print(f"URL: {_syllabus_host()}/en-US/doc/{syllabus_id}/")
     print(f"Last modified: {doc.get('modified', '?')}")
 
     editors = doc.get("editors", [])

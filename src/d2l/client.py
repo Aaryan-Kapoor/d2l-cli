@@ -1,7 +1,7 @@
 import time
 
-from d2l.config import LMS_HOST, LP_VERSION, LE_VERSION, BAS_VERSION
-from d2l.errors import raise_for_status, RateLimitError
+from d2l.config import get_lms_host, LP_VERSION, LE_VERSION, BAS_VERSION
+from d2l.errors import raise_for_status
 
 
 class D2LClient:
@@ -11,6 +11,7 @@ class D2LClient:
 
     def __init__(self, session):
         self._s = session
+        self._host = get_lms_host()
 
     # --- Low-level ---
 
@@ -32,11 +33,11 @@ class D2LClient:
 
     def lms_get(self, path, params=None):
         """GET against LMS Valence API, returns parsed JSON."""
-        return self._get(f"{LMS_HOST}{path}", params=params)
+        return self._get(f"{self._host}{path}", params=params)
 
     def lms_get_raw(self, path, params=None):
         """GET returning raw response (for file downloads)."""
-        return self._get(f"{LMS_HOST}{path}", params=params, raw=True)
+        return self._get(f"{self._host}{path}", params=params, raw=True)
 
     # --- Path builders ---
 

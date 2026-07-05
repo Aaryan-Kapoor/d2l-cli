@@ -14,6 +14,10 @@ class TokenNotFoundError(D2LError):
     pass
 
 
+class ConfigError(D2LError):
+    pass
+
+
 class APIError(D2LError):
     def __init__(self, status_code, url, body=""):
         self.status_code = status_code

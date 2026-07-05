@@ -5,7 +5,7 @@ import time
 
 import requests
 
-from d2l.config import LMS_HOST, TOKEN_FILE, USER_AGENT
+from d2l.config import get_lms_host, TOKEN_FILE, USER_AGENT
 from d2l.errors import TokenExpiredError, TokenNotFoundError
 
 TOKEN_ISSUER = "https://api.brightspace.com/auth"
@@ -128,12 +128,13 @@ def make_session(token):
             "Saved token is not a valid D2L bearer token. Run: d2l login"
         )
 
+    lms_host = get_lms_host()
     s = requests.Session()
     s.headers.update(
         {
             "Authorization": f"Bearer {token}",
-            "Origin": LMS_HOST,
-            "Referer": f"{LMS_HOST}/",
+            "Origin": lms_host,
+            "Referer": f"{lms_host}/",
             "User-Agent": USER_AGENT,
         }
     )

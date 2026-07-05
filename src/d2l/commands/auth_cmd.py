@@ -209,9 +209,14 @@ def login(headless):
         )
         raise SystemExit(1)
 
-    from d2l.config import LMS_HOST, TOKEN_DIR, TOKEN_FILE, BROWSER_PROFILE
+    from d2l.config import get_lms_host, TOKEN_DIR, TOKEN_FILE, BROWSER_PROFILE
+    from d2l.errors import ConfigError
 
-    d2l_url = f"{LMS_HOST.rstrip('/')}/d2l/home"
+    try:
+        d2l_url = f"{get_lms_host()}/d2l/home"
+    except ConfigError as e:
+        click.echo(str(e), err=True)
+        raise SystemExit(1)
     captured_token = None
     captured_claims = None
 

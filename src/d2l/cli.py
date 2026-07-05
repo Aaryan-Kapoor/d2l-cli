@@ -2,6 +2,7 @@ import click
 
 from d2l.auth import load_token, make_session
 from d2l.client import D2LClient
+from d2l.config import get_lms_host
 from d2l.formatting import set_format, OutputFormat
 
 
@@ -11,6 +12,7 @@ def _make_client_factory():
 
     def factory():
         if "client" not in state:
+            get_lms_host()  # fail on missing school config before token checks
             token = load_token()
             session = make_session(token)
             state["client"] = D2LClient(session)
@@ -47,7 +49,9 @@ from d2l.commands.updates import updates
 from d2l.commands.syllabus import syllabus
 from d2l.commands.download import download, download_content
 from d2l.commands.onboard import onboard
+from d2l.commands.setup_cmd import setup
 
+cli.add_command(setup)
 cli.add_command(login)
 cli.add_command(token)
 cli.add_command(whoami)
