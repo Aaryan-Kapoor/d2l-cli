@@ -21,11 +21,12 @@ Paste this into your AI agent:
 ```text
 Fetch and follow the instructions from
 https://raw.githubusercontent.com/Aaryan-Kapoor/d2l-cli/main/INSTALL_FOR_AGENTS.md
-Set up d2l-cli for me end to end. You should only need me twice: to tell you
-my school, and to log in when a browser window opens.
+Set up d2l-cli for me end to end — install it, set up my school, sign me in,
+and interview me about my courses. Then show me something useful you found
+and suggest what I should ask next.
 ```
 
-That's the whole setup. The agent installs the CLI, installs its own d2l skill, configures your school, opens a browser for your normal SSO login (it never sees your password — the CLI just captures the API token), verifies everything with `d2l doctor`, and interviews you once about your courses so future sessions already know how you work.
+That's the whole setup. The agent installs the CLI, installs its own d2l skill, configures your school, opens a browser for your normal SSO login (it never sees your password — the CLI just captures the API token), verifies everything with `d2l doctor`, interviews you once about your courses so future sessions already know how you work — and finishes by pulling your real deadlines and suggesting what to ask first.
 
 After that, your login refreshes itself: the CLI silently renews the token from your saved session, so you'll rarely be asked to sign in again.
 

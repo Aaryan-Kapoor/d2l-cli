@@ -53,7 +53,7 @@ d2l --md dump --since 24                    # what's new in last 24 hours
 d2l --md dump --course "course name"        # one course only
 d2l --json dump                             # machine-readable JSON
 d2l onboard                                 # interactive course SOP setup
-d2l onboard --yes                           # non-interactive starter SOP
+d2l onboard --yes                           # starter SOP, only if the user declines the interview
 ```
 
 Course names are fuzzy — `"calc"`, `"data structures"`, `"econ"` all work.
@@ -94,7 +94,7 @@ The state file stores a fingerprint of the active course list. On future runs, i
 Recommended flow:
 
 1. Check auth with `d2l token`.
-2. Run `d2l onboard` for interactive setup, or `d2l onboard --yes` for a starter SOP without prompts.
+2. Run `d2l onboard` and interview the user — that conversation is the default. Use `d2l onboard --yes` (starter SOP, no prompts) only if the user declines.
 3. Ask about each course's real source of truth, weekly rhythm, grading style, external tools, and what help the user wants.
 4. Let the generated SOP capture course IDs, source-of-truth hierarchy, per-course workflow, check cadence, grading/policy notes, common commands, ambiguities, and stop/ask rules.
 
