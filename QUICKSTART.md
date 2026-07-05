@@ -21,19 +21,13 @@ At any point, `d2l --json doctor` reports setup state with the exact next comman
 d2l token          # shows token status + time remaining
 ```
 
-If the token is expired or invalid, first try:
-
-```bash
-d2l login --headless
-```
-
-If that fails, hangs, or cannot capture a token, ask the user whether you may launch the browser for them. If they agree, run:
+Expired tokens refresh themselves: every command silently re-authenticates from the saved browser session before failing. If a command still reports a sign-in error, ask the user whether you may launch the browser for them. If they agree, run:
 
 ```bash
 d2l login
 ```
 
-The user can complete browser/SSO login interactively. Do not scrape D2L course data through the browser; use the CLI/API after login.
+The user completes browser/SSO login interactively. Do not scrape D2L course data through the browser; use the CLI/API after login.
 
 ## Commands
 

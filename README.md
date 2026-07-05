@@ -1,33 +1,34 @@
 <p align="center">
-  <img src="banner.svg" alt="d2l-cli — Read-only CLI for D2L Brightspace" width="100%"/>
+  <img src="banner.svg" alt="d2l-cli — your classes, in your AI agent" width="100%"/>
 </p>
 
 <p align="center">
   <img src="https://img.shields.io/badge/python-3.10+-blue?logo=python&logoColor=white" alt="Python 3.10+"/>
   <img src="https://img.shields.io/badge/license-MIT-green" alt="MIT License"/>
   <img src="https://img.shields.io/badge/read--only-by%20design-brightgreen" alt="Read-only"/>
-  <img src="https://img.shields.io/badge/AI%20agent-ready-blueviolet?logo=data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCI+PHBhdGggZD0iTTEyIDJhMTAgMTAgMCAxIDAgMCAyMCAxMCAxMCAwIDAgMCAwLTIwem0wIDNhMiAyIDAgMSAxIDAgNCAyIDIgMCAwIDEgMC00em0zIDEySDlWOWg2eiIgZmlsbD0id2hpdGUiLz48L3N2Zz4=" alt="AI Agent Ready"/>
+  <img src="https://github.com/Aaryan-Kapoor/d2l-cli/actions/workflows/ci.yml/badge.svg" alt="CI"/>
 </p>
 
-# d2l-cli
+**d2l-cli** gives any AI agent — Claude Code, OpenClaw, Cursor, Copilot, Gemini CLI, anything that can run a command — read-only access to your D2L Brightspace courses. Grades, due dates, assignments, quizzes, syllabi, announcements, lecture files. You stop clicking through D2L and start asking questions.
 
-Read-only CLI for D2L Brightspace. Pulls grades, assignments, content, syllabi, and more — designed to be used by AI coding agents (Claude Code, OpenClaw, etc.) as a tool. Works with any school on Brightspace; Kennesaw State and Georgia State ship as one-word presets.
+Works at **any school on Brightspace**. Kennesaw State and Georgia State are one-word presets.
 
-> **AI agents:** See [INSTALL_FOR_AGENTS.md](INSTALL_FOR_AGENTS.md) for end-to-end setup, [AGENTS.md](AGENTS.md) for the full command reference, or [QUICKSTART.md](QUICKSTART.md) for short setup.
+## Set up in one message
 
-## Set Up With Your Agent (recommended)
-
-Send this to your AI agent:
+Paste this into your AI agent:
 
 ```text
-Fetch and follow the instructions from https://raw.githubusercontent.com/Aaryan-Kapoor/d2l-cli/main/INSTALL_FOR_AGENTS.md
+Fetch and follow the instructions from
+https://raw.githubusercontent.com/Aaryan-Kapoor/d2l-cli/main/INSTALL_FOR_AGENTS.md
+Set up d2l-cli for me end to end. You should only need me twice: to tell you
+my school, and to log in when a browser window opens.
 ```
 
-The agent installs the CLI, asks which school you attend, configures it with `d2l setup`, installs the bundled agent skill into its own skill system, walks you through browser login when needed, verifies access with `d2l doctor`, and runs course onboarding to create `D2L_COURSE_SOP.md`. Your only jobs: tell it your school, and complete your normal SSO login when a browser window opens.
+That's the whole setup. The agent installs the CLI, installs its own d2l skill, configures your school, opens a browser for your normal SSO login (it never sees your password — the CLI just captures the API token), verifies everything with `d2l doctor`, and interviews you once about your courses so future sessions already know how you work.
 
-## Example Usage
+After that, your login refreshes itself: the CLI silently renews the token from your saved session, so you'll rarely be asked to sign in again.
 
-Ask your AI agent a natural question — it calls `d2l` under the hood and gives you a clean summary.
+## Then just ask
 
 > *"What are my grades this semester?"*
 
@@ -37,44 +38,74 @@ Ask your AI agent a natural question — it calls `d2l` under the hood and gives
 
 ![Claude Code checking due dates across courses and listing upcoming items](assets/due-demo.png)
 
-## Manual Setup
+### Prompts worth stealing
 
-Three commands — no clone, no venv, no config files to edit:
+The point of an agent is autonomy — don't ask for data, ask for outcomes. Copy these:
+
+**The weekly plan**
+
+```text
+Check every one of my courses. Build me a plan for the next 7 days: everything
+due or overdue, ranked by grade impact — pull each course's grading weights
+from the syllabus before ranking. Tell me what to start first and why.
+```
+
+**The grade audit**
+
+```text
+Pull my grades for every course. For each one: where am I losing points, what's
+my current standing, and exactly what do I need on the remaining work to finish
+with an A? Check the syllabus for grading weights before doing any math.
+```
+
+**The study session**
+
+```text
+I have a data structures exam coming up. Find and download the relevant lecture
+notes and study materials, read them, then quiz me one question at a time until
+I stop missing. Track which topics I'm weakest on.
+```
+
+**The assignment kickoff**
+
+```text
+Download the starter files and instructions for the next assignment due in data
+structures into a new folder. Read the instructions and walk me through a plan
+of attack — but don't write any solution code for me.
+```
+
+**The policy cheat sheet**
+
+```text
+Read the syllabus for every one of my courses and make me a one-page cheat
+sheet: grading weights, late policies, exam dates, and instructor contact info.
+```
+
+**The morning briefing** (works great as a scheduled/recurring agent task)
+
+```text
+Run `d2l --md dump --since 24` and brief me: new announcements, new grades,
+anything newly due or changed. If nothing happened, just say so in one line.
+```
+
+## How it works
+
+1. **Your agent runs `d2l`** — a small Python CLI that talks to Brightspace's own student API. Every call is a GET; the tool physically cannot submit, post, or change anything.
+2. **Auth is your normal browser login.** `d2l login` opens a real browser window, you sign in through your school's SSO like always, and the CLI captures the short-lived API token. Tokens expire hourly, but the CLI silently refreshes them from your saved browser session — you sign in roughly once per device, not once per hour.
+3. **The agent carries a skill.** The bundled skill (`d2l skill install`) teaches any agent the commands, the safety rules, and the onboarding workflow, so a brand-new session is productive immediately.
+
+## Manual setup (no agent)
 
 ```bash
 pipx install "d2l-cli[login] @ git+https://github.com/Aaryan-Kapoor/d2l-cli.git"
-d2l setup       # pick your school
-d2l login       # browser opens — log in like normal, token captured automatically
+d2l setup     # pick your school
+d2l login     # browser opens — log in like normal
+d2l courses
 ```
 
-No pipx? `python -m pip install --user "d2l-cli[login] @ git+https://github.com/Aaryan-Kapoor/d2l-cli.git"` works too (make sure `$(python -m site --user-base)/bin` is on your PATH).
+No pipx? Use `python -m pip install --user "d2l-cli[login] @ git+https://github.com/Aaryan-Kapoor/d2l-cli.git"` and make sure `$(python -m site --user-base)/bin` is on your PATH.
 
-## Configuration
-
-`d2l setup` stores your school in `~/.d2l/config.json`:
-
-```bash
-d2l setup                        # interactive school picker
-d2l setup --school ksu           # Kennesaw State preset
-d2l setup --school gsu           # Georgia State preset
-d2l setup --host https://your-school.view.usg.edu   # any Brightspace school
-d2l setup --syllabus-host https://your-school.simplesyllabus.com   # optional
-d2l setup --show                 # current config
-```
-
-Per-run overrides: `D2L_HOST` and `D2L_SYLLABUS_HOST` environment variables.
-
-## Authentication
-
-D2L uses a Bearer token (JWT) that expires every ~1 hour.
-
-```bash
-d2l login                 # opens browser, captures token automatically
-d2l login --headless      # headless mode (reuses saved session cookies)
-d2l token                 # check token status
-```
-
-`d2l login` uses Playwright's bundled Chromium if installed, and automatically falls back to your installed Chrome or Edge — so `playwright install chromium` is optional on most machines. Pin one with `--channel chrome|msedge|chromium`.
+`d2l login` uses Playwright's bundled Chromium if you have it, and automatically falls back to your installed Chrome or Edge — so no 150 MB browser download is required on most machines.
 
 ## Commands
 
@@ -82,10 +113,10 @@ d2l token                 # check token status
 d2l [--json | --md] <command>
 
 Setup:
-  setup [--school NAME | --host URL]   Configure your school (stored in ~/.d2l/config.json)
+  setup [--school NAME | --host URL]   Configure your school (~/.d2l/config.json)
   doctor                               Diagnose config/auth/API state + next step
   skill install DIR                    Install the bundled agent skill
-  update [--ref REF]                   Update to the latest release from GitHub
+  update [--ref REF]                   Update to the latest release
 
 Identity:
   login [--headless] [--channel X]     Browser-based token capture
@@ -93,189 +124,63 @@ Identity:
   whoami                               Current user info
 
 Courses:
-  courses [--all]                 List enrolled courses
+  courses [--all]                      List enrolled courses
 
 Academics:
-  grades COURSE [--final]         Grades for a course or across all
-  assignments COURSE              Assignments + due dates
-  quizzes COURSE                  Quiz list + dates
-  syllabus COURSE                 Full syllabus from SimpleSyllabus
+  grades COURSE [--final]              Grades for a course or across all
+  assignments COURSE                   Assignments + due dates
+  quizzes COURSE                       Quiz list + dates
+  syllabus COURSE                      Full syllabus from SimpleSyllabus
 
 Content:
-  content COURSE [--toc]          Course modules and topics
-  discussions COURSE              Forums, topics, posts
-  news [COURSE] [--since DATE]    Announcements
+  content COURSE [--toc]               Course modules and topics
+  discussions COURSE                   Forums, topics, posts
+  news [COURSE] [--since DATE]         Announcements
 
 Scheduling:
-  calendar [--course X] [--days N]  Calendar events
-  due [--days N]                    Items due soon
-  overdue                           Overdue items
-  updates [COURSE]                  Unread update counts
+  calendar [--course X] [--days N]     Calendar events
+  due [--days N]                       Items due soon
+  overdue                              Overdue items
+  updates [COURSE]                     Unread update counts
 
 Downloads:
-  download COURSE ASSIGNMENT [-o DIR]          Assignment attachments
-  download-content COURSE MODULE [-o DIR]      Content files (notes, slides)
+  download COURSE ASSIGNMENT [-o DIR]        Assignment attachments
+  download-content COURSE MODULE [-o DIR]    Content files (notes, slides)
 
-AI Snapshot:
-  dump [--course X] [--shallow] [--since N] [--include TYPE]
+AI snapshot:
+  dump [--course X] [--shallow] [--since N]  Full academic snapshot
 
 Onboarding:
-  onboard [--output FILE] [--force] [--yes]  Create/update course SOP + onboarding state
+  onboard [--force] [--yes]            Create/update the course SOP + state
 ```
 
-All COURSE arguments accept fuzzy names (`"data structures"`), course codes, or numeric org unit IDs.
+Every `COURSE` argument takes fuzzy names (`"data structures"`, `"calc"`), course codes, or numeric IDs. Output is human tables by default, `--json` for machines, `--md` for AI consumption — put the flag before the command.
 
-## Output Formats
-
-- Default: human-readable aligned tables
-- `--json`: structured JSON for programmatic use
-- `--md`: AI-optimized markdown (full text, IDs, ISO dates)
+## Your school
 
 ```bash
-d2l grades "calc"                  # human table
-d2l --json grades "calc"           # JSON
-d2l --md grades "calc"             # markdown
+d2l setup                    # interactive picker
+d2l setup --school ksu       # Kennesaw State preset (includes SimpleSyllabus)
+d2l setup --school gsu       # Georgia State preset
+d2l setup --host https://your-school.view.usg.edu     # any Brightspace school
+d2l setup --syllabus-host https://your-school.simplesyllabus.com   # optional
 ```
 
-## AI Agent Integration
+Config lives in `~/.d2l/config.json`; `D2L_HOST` overrides it per-run. At a school that isn't a preset yet? It still works with `--host` — and a one-line PR to [`schools.py`](src/d2l/schools.py) adds your school as a preset for everyone after you.
 
-### Claude Code / OpenClaw
+## For agent developers
 
-`AGENTS.md` at the repo root is the universal agent instruction file — automatically read by Claude Code, Copilot, Codex, Cursor, Windsurf, Gemini CLI, Aider, and others.
+- `AGENTS.md` at the repo root is the standing instruction file picked up by Claude Code, Cursor, Copilot, Codex, Windsurf, Aider, and friends.
+- `d2l skill install <dir>` emits the bundled portable skill (SKILL.md + references) into any skill system — no repo checkout needed.
+- `d2l --json doctor` reports every setup check with a `next_step` command, so agents never guess state.
+- Every command is machine-readable with `--json`; `d2l --md dump` is the one-shot full-context snapshot.
 
-**Setup steps:**
+**Headless servers:** run `d2l login` once on a machine with a browser, copy `~/.d2l/` to the server, and the automatic headless refresh keeps the token alive off the saved session cookies (they last for weeks).
 
-1. Install `d2l-cli` onto the user's PATH:
-   ```bash
-   python -m pip install --user "d2l-cli[login] @ git+https://github.com/Aaryan-Kapoor/d2l-cli.git"
-   export PATH="$(python -m site --user-base)/bin:$PATH"
-   d2l --version
-   ```
+## Strictly read-only
 
-2. Ask the user which school they attend, then configure it:
-   ```bash
-   d2l setup --school ksu          # or gsu, or --host <their Brightspace URL>
-   ```
-
-3. Capture a token:
-   ```bash
-   d2l login
-   ```
-
-   If a saved token expires later, agents should try `d2l login --headless` first. If that fails, ask the user before launching `d2l login` for interactive browser login. Browser login is only for authentication; do not scrape course data through the browser.
-
-4. Install the bundled skill into the agent's skill system and run onboarding:
-   ```bash
-   d2l skill install ~/.claude/skills/d2l    # or the agent system's skill dir
-   d2l onboard
-   ```
-
-   Onboarding writes `D2L_COURSE_SOP.md` and `.d2l/onboarding.json`. The state file stores a fingerprint of active courses, so agents can detect that onboarding is already complete and avoid repeating the setup interview unless courses change.
-
-5. At any point, `d2l --json doctor` reports every setup check with the exact next command to run.
-
-6. The agent can now run `d2l` commands. Example prompts:
-   - *"What's due this week?"*
-   - *"How am I doing in data structures?"*
-   - *"Download the starter code for assignment 6"*
-   - *"What's the grading breakdown for calc?"*
-
-### Other Agents (MCP, custom)
-
-The `--json` flag makes every command machine-readable:
-
-```bash
-# Full academic snapshot as JSON
-d2l --json dump
-
-# Grades for one course
-d2l --json grades "data structures"
-
-# What's new in the last 24 hours
-d2l --json dump --since 24
-```
-
-### Headless Server Setup
-
-For agents running on a headless server (no GUI):
-
-1. Run `d2l login` on a machine with a browser (captures token + browser profile)
-2. Copy `~/.d2l/` to the server
-3. Set up a cron job to refresh the token (session cookies last days/weeks):
-   ```bash
-   # Refresh token every 45 minutes using saved session cookies
-   */45 * * * * d2l login --headless
-   ```
-
-## Key Commands for Agents
-
-```bash
-# Quick overview
-d2l --md dump --shallow
-
-# What's new since last check
-d2l --md dump --since 24
-
-# Full context for one course
-d2l --md dump --course "data structures"
-
-# Get syllabus (grading weights, policies)
-d2l --md syllabus "data structures"
-
-# Download assignment starter files
-d2l download "data structures" "trees" -o ./assignment
-
-# Download lecture notes
-d2l download-content "calc" "Unit 3 Materials" -o ./notes
-
-# First-time course SOP setup
-d2l onboard
-```
-
-## Student Quick Start
-
-```bash
-pipx install "d2l-cli[login] @ git+https://github.com/Aaryan-Kapoor/d2l-cli.git"
-
-# Pick your school (KSU and GSU are presets; any Brightspace URL works)
-d2l setup
-
-# Log in (opens browser, captures token automatically via your school's SSO)
-d2l login
-
-# See your courses
-d2l courses
-
-# Check grades
-d2l grades "data structures"
-
-# What's due?
-d2l due
-
-# What's overdue?
-d2l overdue
-
-# Get the syllabus for any course
-d2l syllabus "calc"
-
-# Download assignment starter code
-d2l download "data structures" "A06" -o ./trees-assignment
-
-# Download lecture notes
-d2l download-content "calc" "Exam Preparation" -o ./exam-prep
-
-# Full snapshot for AI assistants
-d2l --md dump
-```
-
-`d2l syllabus` uses SimpleSyllabus (no auth required). The KSU preset configures it automatically; other schools can add theirs with `d2l setup --syllabus-host`.
-
-Token expires every ~1 hour. Just run `d2l login` again — your SSO session cookies persist so it's instant (no re-login).
-
-## Strictly Read-Only
-
-Course-data commands are read-only. The CLI cannot submit assignments, post discussions, modify grades, or change anything on D2L. By design.
+Every API call this tool makes is a GET. It cannot submit assignments, post to discussions, modify grades, mark items read, or change anything on D2L — by design, not by policy. Your agent gets eyes, not hands.
 
 ## Disclaimer
 
-This is a personal project and is not affiliated with, endorsed by, or associated with D2L, Brightspace, or Kennesaw State University in any way. Just something I built for myself and thought was worth sharing.
+This is a personal project and is not affiliated with, endorsed by, or associated with D2L, Brightspace, or any university. Just something I built for myself and thought was worth sharing.

@@ -98,7 +98,7 @@ configure a school.
 1. **Read-only only.** Use `d2l` only for read-only Brightspace data. Never submit assignments, post discussions, modify grades, change settings, or perform actions that mutate D2L state.
 2. **Prefer structured output.** Use `--md` or `--json` when processing data. Human/table output is for display only.
 3. **Put global flags before the command.** Use `d2l --md grades "calc"`, not `d2l grades --md "calc"`.
-4. **Handle auth failures safely.** If the token is expired or invalid, first try `d2l login --headless`. If that fails, hangs, or cannot capture a token, ask the user to log in to D2L again. Ask whether you may launch the browser for them, then run `d2l login` so they can complete the login interactively.
+4. **Auth maintains itself.** The CLI silently refreshes expired tokens using the saved browser session before any command fails. If a command still reports a sign-in error, the saved session has fully expired — ask the user whether you may launch `d2l login`, then run it so they can log in interactively. Never ask them to copy tokens or open DevTools.
 5. **No browser scraping.** Do not use browser automation, page scraping, or in-page JavaScript to retrieve D2L course data. Browser login is only for authentication; course data should come from the CLI/API paths.
 6. **Resolve courses carefully.** Course arguments can be fuzzy names, course codes, or numeric org unit IDs. If multiple courses match, ask the user to disambiguate or use the numeric ID.
 7. **Fetch policy sources first.** For grading policies, course rules, grading weights, prerequisites, or instructor policies, fetch the syllabus first with `d2l --md syllabus COURSE` when available.
@@ -124,19 +124,20 @@ Course arguments accept fuzzy names, codes, or numeric IDs:
 
 ## When Token Expires
 
-The D2L token expires every ~1 hour. If the token is expired or invalid, first try:
+Tokens expire hourly, but you normally never notice: every `d2l` command
+auto-refreshes the token in the background from the saved browser session.
 
-```bash
-d2l login --headless
-```
-
-If headless login fails, hangs, or cannot capture a token, ask the user whether you may launch the browser for them. If they agree, run:
+If a command still fails with a sign-in error, the saved session itself has
+expired. Ask the user whether you may launch the browser for them; if they
+agree, run:
 
 ```bash
 d2l login
 ```
 
-The user can complete browser/SSO login interactively, and the CLI will save the refreshed token.
+The user completes browser/SSO login interactively, and the CLI saves the
+refreshed token. (`d2l login --headless` and `D2L_NO_AUTO_LOGIN=1` exist for
+manual control, but are rarely needed.)
 
 ## Important
 

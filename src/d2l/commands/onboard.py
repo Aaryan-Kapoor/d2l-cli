@@ -119,7 +119,7 @@ def _render_sop(courses, contexts, answers, generated_at):
         "- Use `d2l` only for read-only Brightspace data.",
         "- Prefer `--md` or `--json` when processing CLI output.",
         "- Put global flags before the command, e.g. `d2l --md grades COURSE`.",
-        "- If auth fails, try `d2l login --headless` first. If that fails, ask before launching `d2l login` for interactive browser login.",
+        "- Auth refreshes itself; if a command still reports a sign-in error, ask before launching `d2l login` for interactive browser login.",
         "- Do not scrape D2L course data through the browser. Browser login is only for authentication.",
         "- Fetch the syllabus before answering policy, grading-weight, prerequisite, or instructor-rule questions when a syllabus is available.",
         "- If required data cannot be fetched, stop and report the blocker instead of guessing.",
