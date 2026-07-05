@@ -3,7 +3,7 @@
 </p>
 
 <p align="center">
-  <a href="https://pypi.org/project/d2l-cli/"><img src="https://img.shields.io/pypi/v/d2l-cli?color=blue" alt="PyPI"/></a>
+  <a href="https://pypi.org/project/d2l-cli/"><img src="https://img.shields.io/pypi/v/d2l-cli?logo=pypi&logoColor=white&color=blue" alt="PyPI"/></a>
   <img src="https://img.shields.io/badge/python-3.10+-blue?logo=python&logoColor=white" alt="Python 3.10+"/>
   <img src="https://img.shields.io/badge/license-MIT-green" alt="MIT License"/>
   <img src="https://img.shields.io/badge/read--only-by%20design-brightgreen" alt="Read-only"/>
