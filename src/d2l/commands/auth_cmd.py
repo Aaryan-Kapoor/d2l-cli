@@ -221,37 +221,28 @@ def _launch_context(p, browser_profile, headless, channel):
             first_line = str(e).splitlines()[0] if str(e).strip() else type(e).__name__
             errors.append(f"    {label}: {first_line}")
 
-    click.echo("[!] Could not launch a browser for login. Tried:", err=True)
-    for line in errors:
-        click.echo(line, err=True)
-    click.echo(
-        "    Fix: run `python -m playwright install chromium`, "
-        "or install Google Chrome / Microsoft Edge.",
-        err=True,
-    )
-    raise SystemExit(1)
+    return None, errors
 
 
-@click.command()
-@click.option("--headless", is_flag=True, help="Run browser headless (for servers)")
-@click.option(
-    "--channel",
-    type=click.Choice(["auto", "chromium", "chrome", "msedge"]),
-    default="auto",
-    show_default=True,
-    help="Browser to launch; auto falls back from bundled Chromium to installed Chrome/Edge",
-)
-def login(headless, channel):
-    """Launch browser to capture D2L auth token."""
+def _capture_and_save(headless, channel="auto", quiet=False):
+    """Launch a browser, capture a D2L token, and save it. Returns True on success.
+
+    quiet=True suppresses all output — used by the automatic background
+    refresh so command output stays clean.
+    """
+    def echo(msg, err=False):
+        if not quiet:
+            click.echo(msg, err=err)
+
     try:
         from playwright.sync_api import sync_playwright
     except ImportError:
-        click.echo(
+        echo(
             'Playwright not installed. Run: pip install "d2l-cli[login]" '
             "(no browser download needed if Chrome or Edge is installed)",
             err=True,
         )
-        raise SystemExit(1)
+        return False
 
     from d2l.config import get_lms_host, TOKEN_DIR, TOKEN_FILE, BROWSER_PROFILE
     from d2l.errors import ConfigError
@@ -259,8 +250,8 @@ def login(headless, channel):
     try:
         d2l_url = f"{get_lms_host()}/d2l/home"
     except ConfigError as e:
-        click.echo(str(e), err=True)
-        raise SystemExit(1)
+        echo(str(e), err=True)
+        return False
     captured_token = None
     captured_claims = None
 
@@ -279,13 +270,23 @@ def login(headless, channel):
             return
         captured_token = token
         captured_claims = claims
-        click.echo(f"[*] Captured token from request: {request.url[:80]}...")
+        echo(f"[*] Captured token from request: {request.url[:80]}...")
 
     with sync_playwright() as p:
-        context, browser_label = _launch_context(p, BROWSER_PROFILE, headless, channel)
-        click.echo(f"[*] Launched {browser_label} (profile: {BROWSER_PROFILE})")
+        context, launch_result = _launch_context(p, BROWSER_PROFILE, headless, channel)
+        if context is None:
+            echo("[!] Could not launch a browser for login. Tried:", err=True)
+            for line in launch_result:
+                echo(line, err=True)
+            echo(
+                "    Fix: run `python -m playwright install chromium`, "
+                "or install Google Chrome / Microsoft Edge.",
+                err=True,
+            )
+            return False
+        echo(f"[*] Launched {launch_result} (profile: {BROWSER_PROFILE})")
         if not headless:
-            click.echo("[*] Log in if prompted. Token will be captured automatically.\n")
+            echo("[*] Log in if prompted. Token will be captured automatically.\n")
 
         context.on("request", on_request)
         page = context.pages[0] if context.pages else context.new_page()
@@ -300,12 +301,12 @@ def login(headless, channel):
                     result = _extract_token_from_local_storage(candidate)
                     if result:
                         captured_token, captured_claims = result
-                        click.echo("[*] Captured token from local storage")
+                        echo("[*] Captured token from local storage")
                         break
                     result = _request_token_in_page(candidate)
                     if result:
                         captured_token, captured_claims = result
-                        click.echo("[*] Refreshed token through D2L auth endpoint")
+                        echo("[*] Refreshed token through D2L auth endpoint")
                         break
                 if captured_token:
                     break
@@ -320,18 +321,68 @@ def login(headless, channel):
             profile_token = _extract_profile_token(BROWSER_PROFILE)
             if profile_token:
                 captured_token, captured_claims, token_path = profile_token
-                click.echo(f"[*] Loaded token from browser profile: {token_path}")
-
-        if captured_token and captured_claims:
-            _save_token(captured_token, captured_claims, TOKEN_FILE, TOKEN_DIR)
-            click.echo(f"\n[OK] Token saved to {TOKEN_FILE}")
-            click.echo(f"     Expires: {time.ctime(captured_claims['exp'])}")
-            click.echo(f"     User ID: {captured_claims.get('sub')}")
-        else:
-            click.echo("[!] No token captured.", err=True)
-            raise SystemExit(1)
+                echo(f"[*] Loaded token from browser profile: {token_path}")
 
         context.close()
+
+    if captured_token and captured_claims:
+        _save_token(captured_token, captured_claims, TOKEN_FILE, TOKEN_DIR)
+        echo(f"\n[OK] Token saved to {TOKEN_FILE}")
+        echo(f"     Expires: {time.ctime(captured_claims['exp'])}")
+        echo(f"     User ID: {captured_claims.get('sub')}")
+        return True
+
+    echo("[!] No token captured.", err=True)
+    return False
+
+
+AUTO_LOGIN_DISABLED_ENV = "D2L_NO_AUTO_LOGIN"
+
+
+def _playwright_available():
+    from importlib.util import find_spec
+
+    return find_spec("playwright") is not None
+
+
+def attempt_auto_login():
+    """Silent headless token refresh using saved session cookies.
+
+    Called automatically when a command finds the token missing/expired.
+    Returns True if a fresh token was captured; never raises and never
+    opens a visible browser.
+    """
+    import os
+
+    from d2l.config import BROWSER_PROFILE
+
+    if os.environ.get(AUTO_LOGIN_DISABLED_ENV):
+        return False
+    if not BROWSER_PROFILE.exists():
+        return False
+    if not _playwright_available():
+        return False
+
+    click.echo("[*] D2L token expired — refreshing sign-in in the background...", err=True)
+    try:
+        return _capture_and_save(headless=True, channel="auto", quiet=True)
+    except Exception:
+        return False
+
+
+@click.command()
+@click.option("--headless", is_flag=True, help="Run browser headless (for servers)")
+@click.option(
+    "--channel",
+    type=click.Choice(["auto", "chromium", "chrome", "msedge"]),
+    default="auto",
+    show_default=True,
+    help="Browser to launch; auto falls back from bundled Chromium to installed Chrome/Edge",
+)
+def login(headless, channel):
+    """Launch browser to capture D2L auth token."""
+    if not _capture_and_save(headless=headless, channel=channel):
+        raise SystemExit(1)
 
 
 @click.command()
