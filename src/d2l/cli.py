@@ -50,8 +50,10 @@ from d2l.commands.syllabus import syllabus
 from d2l.commands.download import download, download_content
 from d2l.commands.onboard import onboard
 from d2l.commands.setup_cmd import setup
+from d2l.commands.doctor import doctor
 
 cli.add_command(setup)
+cli.add_command(doctor)
 cli.add_command(login)
 cli.add_command(token)
 cli.add_command(whoami)
