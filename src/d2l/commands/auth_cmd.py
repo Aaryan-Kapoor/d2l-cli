@@ -196,9 +196,52 @@ def _extract_profile_token(browser_profile: Path):
     return token, claims, path
 
 
+def _launch_context(p, browser_profile, headless, channel):
+    """Launch a persistent browser context, falling back across browsers.
+
+    'auto' tries Playwright's bundled Chromium first, then installed Chrome
+    and Edge — so login works even when `playwright install chromium` was
+    never run, as long as any Chromium-family browser is on the machine.
+    """
+    if channel == "auto":
+        attempts = [(None, "bundled Chromium"), ("chrome", "Google Chrome"), ("msedge", "Microsoft Edge")]
+    elif channel == "chromium":
+        attempts = [(None, "bundled Chromium")]
+    else:
+        attempts = [(channel, channel)]
+
+    errors = []
+    for chan, label in attempts:
+        kwargs = {"headless": headless, "viewport": {"width": 1280, "height": 900}}
+        if chan:
+            kwargs["channel"] = chan
+        try:
+            return p.chromium.launch_persistent_context(str(browser_profile), **kwargs), label
+        except Exception as e:
+            first_line = str(e).splitlines()[0] if str(e).strip() else type(e).__name__
+            errors.append(f"    {label}: {first_line}")
+
+    click.echo("[!] Could not launch a browser for login. Tried:", err=True)
+    for line in errors:
+        click.echo(line, err=True)
+    click.echo(
+        "    Fix: run `python -m playwright install chromium`, "
+        "or install Google Chrome / Microsoft Edge.",
+        err=True,
+    )
+    raise SystemExit(1)
+
+
 @click.command()
 @click.option("--headless", is_flag=True, help="Run browser headless (for servers)")
-def login(headless):
+@click.option(
+    "--channel",
+    type=click.Choice(["auto", "chromium", "chrome", "msedge"]),
+    default="auto",
+    show_default=True,
+    help="Browser to launch; auto falls back from bundled Chromium to installed Chrome/Edge",
+)
+def login(headless, channel):
     """Launch browser to capture D2L auth token."""
     try:
         from playwright.sync_api import sync_playwright
@@ -238,15 +281,11 @@ def login(headless):
         click.echo(f"[*] Captured token from request: {request.url[:80]}...")
 
     with sync_playwright() as p:
-        click.echo(f"[*] Launching browser (profile: {BROWSER_PROFILE})")
+        context, browser_label = _launch_context(p, BROWSER_PROFILE, headless, channel)
+        click.echo(f"[*] Launched {browser_label} (profile: {BROWSER_PROFILE})")
         if not headless:
             click.echo("[*] Log in if prompted. Token will be captured automatically.\n")
 
-        context = p.chromium.launch_persistent_context(
-            str(BROWSER_PROFILE),
-            headless=headless,
-            viewport={"width": 1280, "height": 900},
-        )
         context.on("request", on_request)
         page = context.pages[0] if context.pages else context.new_page()
         page.goto(d2l_url, wait_until="domcontentloaded")
