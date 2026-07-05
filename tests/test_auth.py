@@ -42,6 +42,21 @@ class AuthTests(unittest.TestCase):
                     auth.load_token()
         self.assertIn("unsupported auth_type=browser-session", str(ctx.exception))
 
+    def test_expired_token_file_falls_back_to_env_token(self):
+        import os
+        expired = self.make_token(exp=int(time.time()) - 60)
+        fresh = self.make_token()
+        with tempfile.TemporaryDirectory() as tmp:
+            token_file = Path(tmp) / "token.json"
+            token_file.write_text(json.dumps({"token": expired}))
+            with patch.object(auth, "TOKEN_FILE", token_file):
+                with patch.dict(os.environ, {"D2L_TOKEN": fresh}):
+                    self.assertEqual(auth.load_token(), fresh)
+                # without any env token the expired error still surfaces
+                os.environ.pop("D2L_TOKEN", None)
+                with self.assertRaises(auth.TokenExpiredError):
+                    auth.load_token()
+
     def test_load_token_accepts_valid_saved_bearer(self):
         with tempfile.TemporaryDirectory() as tmp:
             token_file = Path(tmp) / "token.json"

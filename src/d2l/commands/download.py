@@ -60,7 +60,9 @@ def _safe_filename(name, fallback):
     """Strip any path components from a server-supplied filename so it can
     never escape the output directory."""
     name = Path(str(name).replace("\\", "/")).name.strip()
-    return name or fallback
+    if name in ("", ".", ".."):
+        return fallback
+    return name
 
 
 # --- Assignment helpers ---
