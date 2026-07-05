@@ -52,10 +52,12 @@ from d2l.commands.onboard import onboard
 from d2l.commands.setup_cmd import setup
 from d2l.commands.doctor import doctor
 from d2l.commands.skill_cmd import skill
+from d2l.commands.update_cmd import update
 
 cli.add_command(setup)
 cli.add_command(doctor)
 cli.add_command(skill)
+cli.add_command(update)
 cli.add_command(login)
 cli.add_command(token)
 cli.add_command(whoami)

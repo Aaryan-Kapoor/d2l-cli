@@ -85,6 +85,7 @@ Setup:
   setup [--school NAME | --host URL]   Configure your school (stored in ~/.d2l/config.json)
   doctor                               Diagnose config/auth/API state + next step
   skill install DIR                    Install the bundled agent skill
+  update [--ref REF]                   Update to the latest release from GitHub
 
 Identity:
   login [--headless] [--channel X]     Browser-based token capture

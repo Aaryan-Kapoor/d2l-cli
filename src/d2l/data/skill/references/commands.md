@@ -12,6 +12,7 @@ Core commands:
 ```bash
 d2l --json doctor
 d2l setup --list-schools
+d2l update
 d2l token
 d2l whoami
 d2l courses

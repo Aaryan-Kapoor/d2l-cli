@@ -177,9 +177,11 @@ Important:
 ## Step 9: Upgrade
 
 ```bash
-python -m pip install --user --upgrade "d2l-cli[login] @ git+https://github.com/Aaryan-Kapoor/d2l-cli.git"
+d2l update
 d2l --json doctor
 ```
+
+`update` detects the install style automatically: a git checkout is pulled in place, package installs (pip/pipx) are reinstalled from the latest GitHub release.
 
 If commands or active courses changed, refresh the SOP with `d2l onboard` if the user approves.
 
