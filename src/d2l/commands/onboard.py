@@ -5,7 +5,7 @@ from pathlib import Path
 
 import click
 
-from d2l.errors import handle_errors, D2LError, NotFoundError, ForbiddenError
+from d2l.errors import handle_errors, TokenExpiredError, TokenNotFoundError
 from d2l.formatting import get_format, OutputFormat, output
 from d2l.resolver import CourseResolver
 
@@ -35,9 +35,14 @@ def course_fingerprint(courses):
 
 
 def _safe(fn, default=None):
+    """Best-effort fetch: missing/forbidden course data degrades to a default,
+    but auth failures propagate so onboarding fails loudly instead of writing
+    a blank SOP."""
     try:
         return fn()
-    except (D2LError, NotFoundError, ForbiddenError, Exception):
+    except (TokenExpiredError, TokenNotFoundError):
+        raise
+    except Exception:
         return default
 
 
@@ -225,12 +230,15 @@ def onboard(ctx, output_file, state_dir, force, non_interactive):
                 click.echo(f"Onboarding already complete: {output_path}")
                 click.echo("Course list fingerprint matches active courses. Use --force to refresh.")
             return
-        if not non_interactive and not click.confirm(
-            "Active course list changed since onboarding. Update the SOP now?",
-            default=False,
-        ):
-            click.echo("Onboarding unchanged.")
-            return
+        if not non_interactive:
+            if not click.confirm(
+                "Active course list changed since onboarding. Update the SOP now?",
+                default=False,
+            ):
+                click.echo("Onboarding unchanged.")
+                return
+            # Confirming the update already covers overwriting the SOP file.
+            force = True
 
     if output_path.exists() and not force and not non_interactive:
         if not click.confirm(f"Overwrite existing {output_path}?", default=False):
