@@ -85,7 +85,7 @@ d2l --json dump                    # Machine-readable JSON
 
 # First-time course workflow setup
 d2l onboard                        # Interactive course SOP setup
-d2l onboard --yes                  # Non-interactive starter SOP
+d2l onboard --yes                  # Starter SOP, only if the user declines the interview
 ```
 
 ## First-Time Setup
@@ -185,7 +185,7 @@ The state file stores a fingerprint of the active course list. On future runs, i
 Onboarding flow:
 
 1. Check auth with `d2l token`. If needed, follow the auth flow above.
-2. Run `d2l onboard` for interactive setup, or `d2l onboard --yes` to generate a starter SOP without prompts.
+2. Run `d2l onboard` and interview the user — that conversation is the default. Use `d2l onboard --yes` (starter SOP, no prompts) only if the user declines.
 3. Interview the user briefly about each course: grading style, professor quirks, where deadlines are authoritative, recurring weekly rhythm, external tools, and what kind of help they want from an agent.
 4. The generated SOP includes:
    - course list and IDs
@@ -196,6 +196,7 @@ Onboarding flow:
    - known ambiguities or missing info
    - explicit rules for when to stop and ask the user
 5. Keep the SOP factual and user-specific, but avoid hard-coding private credentials or secrets.
+6. Finish with a hand-off: run `d2l --md due --days 14`, mention one concrete thing you found, and offer 2–3 things the user could ask right now, built from their actual courses — not generic examples.
 
 ## Diagnosing problems
 

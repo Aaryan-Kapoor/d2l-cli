@@ -2,7 +2,9 @@
 
 You are an AI agent setting up `d2l-cli` — a read-only CLI for the user's D2L Brightspace courses — so that you and future agent sessions can answer questions about the user's classes.
 
-This file is self-contained: everything you need is in here and in the skill you will install in Step 2. Follow the steps in order. The user should only be needed twice: to tell you their school, and to complete a browser login.
+This file is self-contained: everything you need is in here and in the skill you will install in Step 2. Follow the steps in order.
+
+Handle everything technical yourself. The user's part is: telling you their school, completing one browser login, a short interview about their courses (Step 6), and picking what to do first (Step 7). Those conversations are part of setup, not interruptions — never skip an interactive step just to ask the user fewer questions.
 
 ## Step 0: Operating Rules
 
@@ -13,12 +15,15 @@ These rules apply during setup and forever after:
 3. Never ask the user to open DevTools, copy tokens, or paste credentials. `d2l login` captures the token automatically while they log in normally.
 4. If required D2L data cannot be fetched because of auth, permissions, or missing access, stop and report the blocker. Do not guess from stale or partial data unless the user explicitly accepts that tradeoff.
 
-## Step 1: Install the CLI
+## Step 1: Install the CLI — Onto the User's PATH
 
-Install from PyPI. If `pipx` is available, prefer it (it puts `d2l` on PATH automatically):
+**Requirement: when this step is done, `d2l` must work in a fresh terminal** — installed user-globally with its directory persisted on the user's PATH, not just reachable in your current shell or a venv. Only deviate if the user explicitly asks for a different install location.
+
+If `pipx` is available, prefer it:
 
 ```bash
 pipx install "d2l-cli[login]"
+pipx ensurepath      # persists the install dir on PATH (no-op if already there)
 d2l --version
 ```
 
@@ -29,15 +34,13 @@ python -m pip install --user "d2l-cli[login]"
 d2l --version
 ```
 
-If `d2l` is not found after the pip install, Python's user scripts directory is not on PATH. Find it:
+With pip, always find the user scripts directory and make sure it is persisted on PATH — don't wait for a "command not found" to do this:
 
 ```bash
 python -c "import os, sysconfig; print(sysconfig.get_path('scripts', f'{os.name}_user'))"
 ```
 
-Then put it on PATH and persist it:
-
-- **macOS / Linux:** `export PATH="<that dir>:$PATH"` for now, and append the same line to `~/.profile` (or the user's shell rc file).
+- **macOS / Linux:** if the user's shell rc file (`~/.profile`, `~/.bashrc`, or `~/.zshrc`) doesn't already put that directory on PATH, append `export PATH="<that dir>:$PATH"` to it — and `export` it in your current session too.
 - **Windows (PowerShell):** persist with
   `[Environment]::SetEnvironmentVariable("Path", "<that dir>;" + [Environment]::GetEnvironmentVariable("Path", "User"), "User")`
   and for the current session run `$env:Path = "<that dir>;$env:Path"`.
@@ -124,11 +127,24 @@ D2L_COURSE_SOP.md      # how to work with this user's courses
 .d2l/onboarding.json   # state + fingerprint of the active course list
 ```
 
-If the user prefers no interview right now, run `d2l onboard --yes` for a starter SOP with placeholders, and tell them to review it later.
+The interview is the default and the point of this step — run `d2l onboard` and have the conversation. Fall back to `d2l onboard --yes` (a starter SOP with placeholders) only if the user explicitly says they don't want to be interviewed right now, and tell them to review the file later.
 
 On any future run: if doctor's `onboarding` check says complete and current, read `D2L_COURSE_SOP.md` and follow it — do not re-interview the user. If it says stale (course list changed — new term, added/dropped course), ask the user before refreshing with `d2l onboard`.
 
-## Step 7: Daily Usage Patterns
+## Step 7: Get the User Started
+
+Setup ends with a demonstration, not a checklist. Pull something real, then offer the user a personalized first move:
+
+1. Run `d2l --md due --days 14` (you may already have a snapshot from Step 5's `dump --shallow`).
+2. Tell the user one concrete thing you found — the nearest deadline, a course with a heavy week coming, a freshly posted grade.
+3. Offer 2–3 things they could ask you right now, built from **their actual courses and data** — never generic examples. For instance:
+   - "Your OS project is due Friday with two quizzes right behind it — want a 7-day plan?"
+   - "I can audit your Calc II grade and tell you exactly what you need on the final for an A."
+   - "Your algorithms exam is in 9 days — I can download the lecture notes and quiz you on them."
+
+If they pick one, do it now.
+
+## Step 8: Daily Usage Patterns
 
 ```bash
 d2l --md dump --shallow                 # broad overview
@@ -153,10 +169,11 @@ Rules of thumb:
 
 Before declaring setup complete:
 
-- [ ] `d2l --version` works
+- [ ] `d2l --version` works, and would work in a fresh terminal (PATH persisted — Step 1)
 - [ ] The skill is installed in your skill directory (Step 2)
 - [ ] `d2l setup --show` shows the user's school
 - [ ] `d2l whoami` identifies the user
 - [ ] `d2l --json doctor` reports `"status": "ready"`
-- [ ] `D2L_COURSE_SOP.md` exists (or the user explicitly skipped onboarding)
+- [ ] `D2L_COURSE_SOP.md` exists from an interactive interview (or the user explicitly declined one)
 - [ ] You told the user where the SOP file is and that login now refreshes itself
+- [ ] You showed the user one real result and offered personalized prompts to try (Step 7)
