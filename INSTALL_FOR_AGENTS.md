@@ -1,281 +1,149 @@
 # d2l-cli Installation Guide for AI Agents
 
-Read this entire file, then follow the steps. Your job is to install `d2l-cli`, authenticate it with the user's help when needed, verify that it works, and run first-time course onboarding.
+You are an AI agent setting up `d2l-cli` — a read-only CLI for the user's D2L Brightspace courses — so that you and future agent sessions can answer questions about the user's classes.
 
-Target: 10-20 minutes to a working read-only D2L Brightspace academic assistant.
+This file is self-contained: everything you need is in here and in the skill you will install in Step 2. Follow the steps in order. The user should only be needed twice: to tell you their school, and to complete a browser login.
 
 ## Step 0: Operating Rules
 
-Before doing anything else:
+These rules apply during setup and forever after:
 
-1. Read `AGENTS.md` at the repo root. It is the agent operating guide for this CLI.
-2. Treat D2L as read-only. Never submit assignments, post discussions, modify grades, change settings, mark items complete/read, or perform actions that mutate D2L state.
-3. Browser login is allowed only for authentication. Do not scrape course data through the browser. Use `d2l` CLI/API commands for course data.
+1. Treat D2L as read-only. Never submit assignments, post discussions, modify grades, change settings, mark items complete/read, or perform actions that mutate D2L state.
+2. The browser is for authentication only. Never scrape course data through the browser — all course data comes from `d2l` commands.
+3. Never ask the user to open DevTools, copy tokens, or paste credentials. `d2l login` captures the token automatically while they log in normally.
 4. If required D2L data cannot be fetched because of auth, permissions, or missing access, stop and report the blocker. Do not guess from stale or partial data unless the user explicitly accepts that tradeoff.
 
-If you fetched this file by URL before cloning, companion files live at:
+## Step 1: Install the CLI
 
-- `https://raw.githubusercontent.com/Aaryan-Kapoor/d2l-cli/main/AGENTS.md`
-- `https://raw.githubusercontent.com/Aaryan-Kapoor/d2l-cli/main/QUICKSTART.md`
-- `https://raw.githubusercontent.com/Aaryan-Kapoor/d2l-cli/main/README.md`
-
-## Step 1: Install d2l-cli
+No repo clone is needed — install straight from git:
 
 ```bash
-git clone https://github.com/Aaryan-Kapoor/d2l-cli.git ~/d2l-cli
-cd ~/d2l-cli
-python -m pip install --user -e ".[login]"
+python -m pip install --user "d2l-cli[login] @ git+https://github.com/Aaryan-Kapoor/d2l-cli.git"
 export PATH="$(python -m site --user-base)/bin:$PATH"
-python -m playwright install chromium
-```
-
-Verify:
-
-```bash
 d2l --version
-d2l --help
 ```
 
-If `d2l` is not found, add the Python user scripts directory to PATH and persist it in the user's shell profile:
+If `d2l` is not found, persist the user scripts directory on PATH:
 
 ```bash
-export PATH="$(python -m site --user-base)/bin:$PATH"
 printf '\nexport PATH="%s:$PATH"\n' "$(python -m site --user-base)/bin" >> ~/.profile
 ```
 
-Do not rely on an activated virtualenv for normal agent use; agents should be able to run `d2l` directly from PATH.
+Notes:
 
+- `playwright install chromium` is **not** required: `d2l login` automatically falls back to the user's installed Chrome or Edge. Only run `python -m playwright install chromium` if login later reports that no browser could be launched.
+- To update later: `d2l update`.
 
-## Step 2: Install the Agent Skill
+## Step 2: Install the Skill — Into Your Own Skill Directory
 
-This repo ships one canonical portable skill at:
-
-```text
-skills/d2l/
-```
-
-Install that folder into your own agent system. Do not maintain a separate hand-written adapter unless your runtime requires one. The skill keeps the same working D2L instructions as `AGENTS.md` and adds the onboarding/sentinel workflow.
-
-Common installs:
+The package bundles a portable agent skill (SKILL.md + reference docs). Install it into **your own agent system's skill directory** right now, before continuing — it is your permanent reference for commands, safety rules, and workflows, and it makes every future session productive without this file.
 
 ```bash
-# OpenClaw workspace skill (visible to the current workspace agent)
-mkdir -p <workspace>/skills
-cp -R ~/d2l-cli/skills/d2l <workspace>/skills/d2l
-
-# OpenClaw personal skill (visible to all OpenClaw agents on this machine)
-mkdir -p ~/.agents/skills
-cp -R ~/d2l-cli/skills/d2l ~/.agents/skills/d2l
-
-# Claude Code project skill
-mkdir -p <project>/.claude/skills
-cp -R ~/d2l-cli/skills/d2l <project>/.claude/skills/d2l
+d2l skill install ~/.claude/skills/d2l      # Claude Code (user-level)
+d2l skill install .claude/skills/d2l        # Claude Code (project-level)
+d2l skill install ~/.agents/skills/d2l      # OpenClaw (personal)
+d2l skill install <your-skill-dir>/d2l      # any other agent system
 ```
 
-For other agent systems, copy `~/d2l-cli/skills/d2l/` into that system's native skill/plugin/instructions directory. If the system has no skill support, continue following this `INSTALL_FOR_AGENTS.md` file and `AGENTS.md` directly.
+Pick the location that matches the system you are running in. If your runtime has no skill support, run `d2l skill cat` and keep its contents in your working context instead.
 
-Verify the skill folder contains:
+## Step 3: Configure the User's School
 
-```text
-skills/d2l/SKILL.md
-skills/d2l/scripts/install.sh
-skills/d2l/scripts/doctor.sh
-skills/d2l/scripts/onboard.sh
-skills/d2l/references/
+Ask the user: **"Which school do you attend?"** Then:
+
+```bash
+d2l setup --list-schools                    # known presets (kennesaw/ksu, gastate/gsu)
+d2l setup --school gsu                      # configure a preset
+d2l setup --host https://their-school.view.usg.edu    # any other Brightspace school
 ```
 
-Do not copy auth files such as `~/.d2l/token.json` into public repos or shared skill registries.
+If their school is not a preset, ask for their Brightspace URL — it's the website they open to see their courses. Configuration is stored in `~/.d2l/config.json`. Never edit source files to configure a school.
 
-## Step 3: Configure the Institution
+If the school uses SimpleSyllabus and the user wants syllabus support:
 
-Open `src/d2l/config.py` and verify the Brightspace host/version settings match the user's institution.
-
-For Kennesaw State University, the repo is preconfigured. For other schools, update:
-
-```python
-LMS_HOST = "https://your-school.view.usg.edu"
-TENANT_ID = "your-tenant-id-here"
+```bash
+d2l setup --syllabus-host https://their-school.simplesyllabus.com
 ```
-
-If the school uses SimpleSyllabus and the user wants syllabus support, update `src/d2l/commands/syllabus.py`:
-
-```python
-SYLLABUS_SEARCH_URL = "https://your-school.simplesyllabus.com/api2/syllabus-search"
-SYLLABUS_FULL_URL = "https://your-school.simplesyllabus.com/api2/doc-full-page-get"
-```
-
-If you are unsure about institution config, ask the user for their Brightspace URL. Do not scrape pages to infer course data.
 
 ## Step 4: Authenticate
 
-Check current auth:
+Ask the user:
 
-```bash
-d2l token
-```
+> I need you to log in to D2L in a browser window so the CLI can capture a read-only API token — you just log in like normal. May I open the browser?
 
-If there is no valid token, try headless login first:
-
-```bash
-d2l login --headless
-```
-
-If headless login fails, hangs, or cannot capture a token, ask the user:
-
-> I need you to complete D2L login in a browser so I can capture a read-only API token. May I launch `d2l login` for you?
-
-If they agree, run:
+When they agree, run:
 
 ```bash
 d2l login
 ```
 
-The user completes browser/SSO login interactively. After login, verify:
+A browser opens; the user completes their normal SSO login; the token is captured and saved automatically. Verify:
 
 ```bash
 d2l token
 d2l whoami
 ```
 
-Do not inspect or scrape course data through the browser. Once auth works, return to CLI commands.
+**After this one login, auth maintains itself.** Tokens expire hourly, but every `d2l` command automatically refreshes the token in the background using the saved browser session. You should almost never see an auth error again — if you do, the saved session has fully expired, and the fix is to ask the user for one more `d2l login`.
 
 ## Step 5: Verify Data Access
 
-Run:
-
 ```bash
+d2l --json doctor
 d2l --md courses
 d2l --md dump --shallow
 ```
 
-Expected result:
+Expected: doctor reports `"status": "ready"`, `courses` lists active enrollments, and `dump --shallow` returns a compact academic snapshot.
 
-- `courses` lists active enrollments.
-- `dump --shallow` returns a compact academic snapshot with enrollments and due/overdue information.
+`d2l --json doctor` is your compass for this entire setup: it reports every check (config, token, API, courses, onboarding) with a `next_step` command. Whenever you are unsure what state things are in — during setup or months from now — run it and follow `next_step`.
 
-If these fail due to auth or permissions, stop and report the blocker. If a specific command fails but others work, continue only with commands that are relevant and clearly available.
-
-## Step 6: Run Course Onboarding
-
-Run the interactive onboarding command:
+## Step 6: Onboard the Courses
 
 ```bash
 d2l onboard
 ```
 
-This creates:
+This briefly interviews the user about each active course (source of truth for deadlines, grading style, what help they want) and writes:
 
 ```text
-D2L_COURSE_SOP.md
-.d2l/onboarding.json
+D2L_COURSE_SOP.md      # how to work with this user's courses
+.d2l/onboarding.json   # state + fingerprint of the active course list
 ```
 
-The SOP captures how the agent should work with each active course. The state file stores a fingerprint of the active course list so future agents can tell whether onboarding has already been completed.
+If the user prefers no interview right now, run `d2l onboard --yes` for a starter SOP with placeholders, and tell them to review it later.
 
-If the user wants a non-interactive starter file, run:
+On any future run: if doctor's `onboarding` check says complete and current, read `D2L_COURSE_SOP.md` and follow it — do not re-interview the user. If it says stale (course list changed — new term, added/dropped course), ask the user before refreshing with `d2l onboard`.
+
+## Step 7: Daily Usage Patterns
 
 ```bash
-d2l onboard --yes
+d2l --md dump --shallow                 # broad overview
+d2l --md dump --since 24                # what changed in the last 24h
+d2l --md dump --course "course name"    # full context for one course
+d2l --md grades "course name"           # grades
+d2l --md syllabus "course name"         # policies, grading weights
+d2l --md due --days 14                  # upcoming deadlines
+d2l --md overdue                        # overdue items
+d2l --md content "course name" --toc    # course materials index
+d2l download-content "course name" "module name" -o ./notes    # lecture files
 ```
 
-Then tell the user the SOP contains placeholders and should be reviewed.
+Rules of thumb:
 
-## Step 7: How to Use the Onboarding State
+- Global flags go **before** the command: `d2l --md grades "calc"`, never `d2l grades --md "calc"`.
+- Use `--md` or `--json` whenever you process output; bare human tables are for display only.
+- Course arguments accept fuzzy names, course codes, or numeric IDs. If multiple courses match, ask the user or use the numeric ID.
+- Fetch the syllabus before answering any grading-policy, course-rule, prerequisite, or instructor-policy question.
 
-Before repeating onboarding, check:
+## Final Checklist
 
-```bash
-ls D2L_COURSE_SOP.md .d2l/onboarding.json
-```
-
-Then run:
-
-```bash
-d2l onboard
-```
-
-If the active course fingerprint still matches, the command reports that onboarding is already complete. Read `D2L_COURSE_SOP.md` and follow it instead of interviewing the user again.
-
-If the course fingerprint changed, ask the user whether to refresh onboarding. This usually means a new term, added/dropped course, or renamed course.
-
-## Step 8: Agent Usage Defaults
-
-Use these command patterns:
-
-```bash
-# Broad overview
-d2l --md dump --shallow
-
-# Full snapshot
-d2l --md dump
-
-# One course
-d2l --md dump --course "course name"
-
-# Grades and policy context
-d2l --md grades "course name"
-d2l --md syllabus "course name"
-
-# Due dates and activity
-d2l --md due --days 14
-d2l --md overdue
-d2l --md updates
-
-# Course materials
-d2l --md content "course name" --toc
-d2l download-content "course name" "module or file name" -o ./notes
-```
-
-Important:
-
-- Put global flags before the command: `d2l --md grades "calc"`, not `d2l grades --md "calc"`.
-- Use `--md` or `--json` when processing output.
-- Use human output only for display.
-- Course arguments can be fuzzy names, course codes, or numeric org unit IDs.
-- If multiple courses match, ask the user to disambiguate or use the numeric ID.
-- Fetch the syllabus before answering grading-policy, course-rule, prerequisite, or instructor-policy questions when available.
-
-## Step 9: Optional Project Integration
-
-If the user wants their agent project to remember how to use D2L, copy or reference:
-
-- `skills/d2l/` as the canonical portable agent skill
-- `AGENTS.md` for repo-level agent behavior and full command reference
-- `QUICKSTART.md` for short setup/reference
-- `D2L_COURSE_SOP.md` after onboarding
-
-Do not copy `.d2l/onboarding.json` or `~/.d2l/token.json` into public repos. They are local state/auth files.
-
-## Step 10: Upgrade
-
-To update the CLI later:
-
-```bash
-cd ~/d2l-cli
-git pull origin main
-python -m pip install --user -e ".[login]"
-export PATH="$(python -m site --user-base)/bin:$PATH"
-d2l --version
-d2l token
-```
-
-If commands or active courses changed, run:
-
-```bash
-d2l onboard
-```
-
-and refresh the SOP if the user approves.
-
-## Final Verification Checklist
-
-Before declaring setup complete, verify:
+Before declaring setup complete:
 
 - [ ] `d2l --version` works
-- [ ] `d2l token` is valid
+- [ ] The skill is installed in your skill directory (Step 2)
+- [ ] `d2l setup --show` shows the user's school
 - [ ] `d2l whoami` identifies the user
-- [ ] `d2l --md courses` lists active courses
-- [ ] `d2l --md dump --shallow` works
-- [ ] `D2L_COURSE_SOP.md` exists or the user explicitly skipped onboarding
-- [ ] `.d2l/onboarding.json` exists if onboarding was run
-- [ ] You told the user where the SOP file is
+- [ ] `d2l --json doctor` reports `"status": "ready"`
+- [ ] `D2L_COURSE_SOP.md` exists (or the user explicitly skipped onboarding)
+- [ ] You told the user where the SOP file is and that login now refreshes itself

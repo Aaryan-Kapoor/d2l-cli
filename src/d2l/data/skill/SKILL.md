@@ -11,6 +11,12 @@ You have access to the `d2l` CLI tool which fetches READ-ONLY data from the user
 ## Quick Reference
 
 ```bash
+# Setup & diagnosis
+d2l --json doctor                  # Full setup state + the exact next command to run
+d2l setup --list-schools           # Known school presets
+d2l setup --school gsu             # Configure a preset school
+d2l setup --host https://your-school.view.usg.edu   # Any Brightspace school
+
 # Identity & auth
 d2l token                          # Check if token is valid
 d2l whoami                         # Current user info
@@ -82,12 +88,23 @@ d2l onboard                        # Interactive course SOP setup
 d2l onboard --yes                  # Non-interactive starter SOP
 ```
 
+## First-Time Setup
+
+Run `d2l --json doctor` before anything else. It reports every setup check
+(config, token, API access, courses, onboarding) with a `next_step` command —
+follow it instead of guessing state.
+
+If no school is configured, ask the user which school they attend, then run
+`d2l setup --school NAME` (see `d2l setup --list-schools`) or
+`d2l setup --host <their Brightspace URL>`. Never edit source files to
+configure a school.
+
 ## Agent Defaults
 
 1. **Read-only only.** Use `d2l` only for read-only Brightspace data. Never submit assignments, post discussions, modify grades, change settings, mark items complete/read, or perform actions that mutate D2L state.
 2. **Prefer structured output.** Use `--md` or `--json` when processing data. Human/table output is for display only.
 3. **Put global flags before the command.** Use `d2l --md grades "calc"`, not `d2l grades --md "calc"`.
-4. **Handle auth failures safely.** If the token is expired or invalid, first try `d2l login --headless`. If that fails, hangs, or cannot capture a token, ask the user to log in to D2L again. Ask whether you may launch the browser for them, then run `d2l login` so they can complete the login interactively.
+4. **Auth maintains itself.** The CLI silently refreshes expired tokens using the saved browser session before any command fails. If a command still reports a sign-in error, the saved session has fully expired — ask the user whether you may launch `d2l login`, then run it so they can log in interactively. Never ask them to copy tokens or open DevTools.
 5. **No browser scraping.** Do not use browser automation, page scraping, or in-page JavaScript to retrieve D2L course data. Browser login is only for authentication; course data should come from the CLI/API paths.
 6. **Resolve courses carefully.** Course arguments can be fuzzy names, course codes, or numeric org unit IDs. If multiple courses match, ask the user to disambiguate or use the numeric ID.
 7. **Fetch policy sources first.** For grading policies, course rules, grading weights, prerequisites, or instructor policies, fetch the syllabus first with `d2l --md syllabus COURSE` when available.
@@ -113,19 +130,20 @@ Course arguments accept fuzzy names, codes, or numeric IDs:
 
 ## When Token Expires
 
-The D2L token expires every ~1 hour. If the token is expired or invalid, first try:
+Tokens expire hourly, but you normally never notice: every `d2l` command
+auto-refreshes the token in the background from the saved browser session.
 
-```bash
-d2l login --headless
-```
-
-If headless login fails, hangs, or cannot capture a token, ask the user whether you may launch the browser for them. If they agree, run:
+If a command still fails with a sign-in error, the saved session itself has
+expired. Ask the user whether you may launch the browser for them; if they
+agree, run:
 
 ```bash
 d2l login
 ```
 
-The user can complete browser/SSO login interactively, and the CLI will save the refreshed token.
+The user completes browser/SSO login interactively, and the CLI saves the
+refreshed token. (`d2l login --headless` and `D2L_NO_AUTO_LOGIN=1` exist for
+manual control, but are rarely needed.)
 
 ## Important
 
@@ -179,12 +197,8 @@ Onboarding flow:
    - explicit rules for when to stop and ask the user
 5. Keep the SOP factual and user-specific, but avoid hard-coding private credentials or secrets.
 
-## Optional bundled helpers
+## Diagnosing problems
 
-The skill folder includes helper scripts. Use them only when appropriate for the user's environment:
-
-- `{baseDir}/scripts/install.sh` installs the CLI from the current repo checkout.
-- `{baseDir}/scripts/doctor.sh` verifies CLI/auth/course access.
-- `{baseDir}/scripts/onboard.sh` runs the onboarding checks and creates the SOP/state files.
-
-For extra detail, read the reference files in `{baseDir}/references/` only when needed.
+When any command fails or state is unclear, run `d2l --json doctor` and follow
+its `next_step`. For extra detail, read the reference files in
+`{baseDir}/references/` only when needed.

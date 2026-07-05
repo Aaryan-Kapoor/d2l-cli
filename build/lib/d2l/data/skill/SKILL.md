@@ -1,3 +1,9 @@
+---
+name: d2l
+description: Fetch read-only academic data from D2L Brightspace and run course onboarding. Use when the user asks about courses, grades, assignments, due dates, quizzes, syllabi, announcements, course content, downloads, academic status, or first-time academic workflow setup.
+metadata: {"openclaw":{"emoji":"🎓","requires":{"bins":["d2l"]}}}
+---
+
 # D2L Brightspace Academic Data
 
 You have access to the `d2l` CLI tool which fetches READ-ONLY data from the user's D2L Brightspace LMS.
@@ -95,7 +101,7 @@ configure a school.
 
 ## Agent Defaults
 
-1. **Read-only only.** Use `d2l` only for read-only Brightspace data. Never submit assignments, post discussions, modify grades, change settings, or perform actions that mutate D2L state.
+1. **Read-only only.** Use `d2l` only for read-only Brightspace data. Never submit assignments, post discussions, modify grades, change settings, mark items complete/read, or perform actions that mutate D2L state.
 2. **Prefer structured output.** Use `--md` or `--json` when processing data. Human/table output is for display only.
 3. **Put global flags before the command.** Use `d2l --md grades "calc"`, not `d2l grades --md "calc"`.
 4. **Auth maintains itself.** The CLI silently refreshes expired tokens using the saved browser session before any command fails. If a command still reports a sign-in error, the saved session has fully expired — ask the user whether you may launch `d2l login`, then run it so they can log in interactively. Never ask them to copy tokens or open DevTools.
@@ -190,3 +196,9 @@ Onboarding flow:
    - known ambiguities or missing info
    - explicit rules for when to stop and ask the user
 5. Keep the SOP factual and user-specific, but avoid hard-coding private credentials or secrets.
+
+## Diagnosing problems
+
+When any command fails or state is unclear, run `d2l --json doctor` and follow
+its `next_step`. For extra detail, read the reference files in
+`{baseDir}/references/` only when needed.

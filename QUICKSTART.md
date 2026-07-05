@@ -5,14 +5,15 @@ You are an AI agent. This file tells you how to use the `d2l` CLI tool to access
 ## Setup (run once)
 
 ```bash
-cd /path/to/d2l-cli
-python -m pip install --user -e ".[login]"
+python -m pip install --user "d2l-cli[login] @ git+https://github.com/Aaryan-Kapoor/d2l-cli.git"
 export PATH="$(python -m site --user-base)/bin:$PATH"
-python -m playwright install chromium
-d2l login          # user must do this — opens browser for SSO
+d2l setup --school ksu   # or gsu, or --host <the user's Brightspace URL> — ask the user
+d2l login                # user must do this — opens browser for SSO
 ```
 
-`d2l` should be installed on PATH. Do not rely on an activated venv for normal agent use.
+`d2l` should be installed on PATH. Do not rely on an activated venv for normal agent use. `d2l login` falls back to installed Chrome/Edge when Playwright's bundled Chromium is missing, so `playwright install chromium` is optional.
+
+At any point, `d2l --json doctor` reports setup state with the exact next command to run.
 
 ## Check auth
 
@@ -20,23 +21,18 @@ d2l login          # user must do this — opens browser for SSO
 d2l token          # shows token status + time remaining
 ```
 
-If the token is expired or invalid, first try:
-
-```bash
-d2l login --headless
-```
-
-If that fails, hangs, or cannot capture a token, ask the user whether you may launch the browser for them. If they agree, run:
+Expired tokens refresh themselves: every command silently re-authenticates from the saved browser session before failing. If a command still reports a sign-in error, ask the user whether you may launch the browser for them. If they agree, run:
 
 ```bash
 d2l login
 ```
 
-The user can complete browser/SSO login interactively. Do not scrape D2L course data through the browser; use the CLI/API after login.
+The user completes browser/SSO login interactively. Do not scrape D2L course data through the browser; use the CLI/API after login.
 
 ## Commands
 
 ```bash
+d2l --json doctor                           # setup state + next step
 d2l whoami                                  # verify identity
 d2l courses                                 # list enrolled courses
 d2l grades "course name"                    # grades for a course
@@ -105,4 +101,10 @@ Recommended flow:
 
 ## Skill file
 
-Install or copy the portable skill folder `skills/d2l/` into your agent system's native skills directory. For example, OpenClaw can use `<workspace>/skills/d2l/` or `~/.agents/skills/d2l/`; Claude Code can use `<project>/.claude/skills/d2l/`.
+The skill ships inside the package. Install it into your agent system's native skills directory:
+
+```bash
+d2l skill install ~/.claude/skills/d2l      # Claude Code (user-level)
+d2l skill install .claude/skills/d2l        # Claude Code (project)
+d2l skill install ~/.agents/skills/d2l      # OpenClaw (personal)
+```
