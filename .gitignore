@@ -5,3 +5,5 @@ __pycache__/
 .d2l/
 D2L_COURSE_SOP*.md
 .claude/settings.local.json
+build/
+dist/

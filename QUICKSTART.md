@@ -5,8 +5,7 @@ You are an AI agent. This file tells you how to use the `d2l` CLI tool to access
 ## Setup (run once)
 
 ```bash
-python -m pip install --user "d2l-cli[login] @ git+https://github.com/Aaryan-Kapoor/d2l-cli.git"
-export PATH="$(python -m site --user-base)/bin:$PATH"
+pipx install "d2l-cli[login]"   # or: python -m pip install --user "d2l-cli[login]"
 d2l setup --school ksu   # or gsu, or --host <the user's Brightspace URL> — ask the user
 d2l login                # user must do this — opens browser for SSO
 ```

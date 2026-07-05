@@ -1,8 +1,9 @@
 <p align="center">
-  <img src="assets/banner.gif" alt="A student tells their AI agent: im cooked, calc exam friday — the agent reads the syllabus, downloads the lectures, and starts a quiz, then the scene zooms out to the d2l-cli banner" width="100%"/>
+  <img src="https://raw.githubusercontent.com/Aaryan-Kapoor/d2l-cli/main/assets/banner.gif" alt="A student tells their AI agent: im cooked, calc exam friday — the agent reads the syllabus, downloads the lectures, and starts a quiz, then the scene zooms out to the d2l-cli banner" width="100%"/>
 </p>
 
 <p align="center">
+  <a href="https://pypi.org/project/d2l-cli/"><img src="https://img.shields.io/pypi/v/d2l-cli?color=blue" alt="PyPI"/></a>
   <img src="https://img.shields.io/badge/python-3.10+-blue?logo=python&logoColor=white" alt="Python 3.10+"/>
   <img src="https://img.shields.io/badge/license-MIT-green" alt="MIT License"/>
   <img src="https://img.shields.io/badge/read--only-by%20design-brightgreen" alt="Read-only"/>
@@ -32,11 +33,11 @@ After that, your login refreshes itself: the CLI silently renews the token from 
 
 > *"What are my grades this semester?"*
 
-![Claude Code fetching grades from all courses and presenting a summary table](assets/grades-demo.png)
+![Claude Code fetching grades from all courses and presenting a summary table](https://raw.githubusercontent.com/Aaryan-Kapoor/d2l-cli/main/assets/grades-demo.png)
 
 > *"What's due next week?"*
 
-![Claude Code checking due dates across courses and listing upcoming items](assets/due-demo.png)
+![Claude Code checking due dates across courses and listing upcoming items](https://raw.githubusercontent.com/Aaryan-Kapoor/d2l-cli/main/assets/due-demo.png)
 
 ### Prompts worth stealing
 
@@ -97,13 +98,13 @@ anything newly due or changed. If nothing happened, just say so in one line.
 ## Manual setup (no agent)
 
 ```bash
-pipx install "d2l-cli[login] @ git+https://github.com/Aaryan-Kapoor/d2l-cli.git"
+pipx install "d2l-cli[login]"
 d2l setup     # pick your school
 d2l login     # browser opens — log in like normal
 d2l courses
 ```
 
-No pipx? Use `python -m pip install --user "d2l-cli[login] @ git+https://github.com/Aaryan-Kapoor/d2l-cli.git"` and make sure `$(python -m site --user-base)/bin` is on your PATH.
+No pipx? Use `python -m pip install --user "d2l-cli[login]"` (on Windows: `py -m pip install --user "d2l-cli[login]"`) and make sure Python's user scripts directory is on your PATH — pip prints its exact location in a warning if it isn't.
 
 `d2l login` uses Playwright's bundled Chromium if you have it, and automatically falls back to your installed Chrome or Edge — so no 150 MB browser download is required on most machines.
 
@@ -166,7 +167,7 @@ d2l setup --host https://your-school.view.usg.edu     # any Brightspace school
 d2l setup --syllabus-host https://your-school.simplesyllabus.com   # optional
 ```
 
-Config lives in `~/.d2l/config.json`; `D2L_HOST` overrides it per-run. At a school that isn't a preset yet? It still works with `--host` — and a one-line PR to [`schools.py`](src/d2l/schools.py) adds your school as a preset for everyone after you.
+Config lives in `~/.d2l/config.json`; `D2L_HOST` overrides it per-run. At a school that isn't a preset yet? It still works with `--host` — and a one-line PR to [`schools.py`](https://github.com/Aaryan-Kapoor/d2l-cli/blob/main/src/d2l/schools.py) adds your school as a preset for everyone after you.
 
 ## For agent developers
 
