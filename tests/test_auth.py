@@ -92,6 +92,57 @@ class AuthTests(unittest.TestCase):
         self.assertEqual(result.exit_code, 1)
         self.assertIn("unsupported auth_type=browser-session", result.output)
 
+    def test_token_command_auto_refreshes_expired_saved_token(self):
+        runner = CliRunner()
+        expired_info = {
+            "status": "expired",
+            "auth_type": "bearer",
+            "expires_at": "expired-time",
+            "remaining_minutes": 0,
+        }
+        fresh_info = {
+            "status": "valid",
+            "auth_type": "bearer",
+            "expires_at": "fresh-time",
+            "remaining_minutes": 60,
+        }
+
+        with patch.object(
+            auth_cmd, "token_info", side_effect=[expired_info, fresh_info]
+        ) as info:
+            with patch.object(
+                auth_cmd, "load_token", side_effect=auth.TokenExpiredError("old")
+            ):
+                with patch.object(
+                    auth_cmd, "attempt_auto_login", return_value=True
+                ) as auto_login:
+                    result = runner.invoke(auth_cmd.token)
+
+        self.assertEqual(result.exit_code, 0)
+        auto_login.assert_called_once_with()
+        self.assertEqual(info.call_count, 2)
+        self.assertIn("Status:    valid", result.output)
+        self.assertNotIn("Status:    expired", result.output)
+
+    def test_token_command_uses_valid_env_fallback_before_auto_login(self):
+        runner = CliRunner()
+        expired = self.make_token(exp=int(time.time()) - 60, sub="saved-user")
+        fresh = self.make_token(sub="env-user")
+
+        with tempfile.TemporaryDirectory() as tmp:
+            token_file = Path(tmp) / "token.json"
+            token_file.write_text(json.dumps({"token": expired}))
+            with patch.object(auth, "TOKEN_FILE", token_file):
+                with patch.object(auth.os, "getcwd", return_value=tmp):
+                    with patch.dict(auth.os.environ, {"D2L_TOKEN": fresh}, clear=True):
+                        with patch.object(auth_cmd, "attempt_auto_login") as auto_login:
+                            result = runner.invoke(auth_cmd.token)
+
+        self.assertEqual(result.exit_code, 0)
+        auto_login.assert_not_called()
+        self.assertIn("Status:    valid", result.output)
+        self.assertIn("User ID:   env-user", result.output)
+
 
 if __name__ == "__main__":
     unittest.main()
