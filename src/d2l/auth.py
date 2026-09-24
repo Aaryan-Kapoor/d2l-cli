@@ -99,11 +99,15 @@ def load_token():
     raise TokenNotFoundError("No bearer token found. Run: d2l login")
 
 
-def token_info():
-    """Return token metadata dict (no API call needed)."""
-    data = _read_token_file()
-    if data is None:
-        return {"status": "not found", "error": "No token found. Run: d2l login"}
+def token_info(token=None):
+    """Return metadata for a provided token or the saved token file."""
+    provided_token = token is not None
+    if not provided_token:
+        data = _read_token_file()
+        if data is None:
+            return {"status": "not found", "error": "No token found. Run: d2l login"}
+    else:
+        data = {"token": token}
 
     token = data.get("token") if isinstance(data, dict) else None
     claims = _parse_bearer_claims(token)
@@ -125,7 +129,7 @@ def token_info():
         "expires_at": time.ctime(exp),
         "remaining_seconds": int(remaining),
         "remaining_minutes": round(remaining / 60, 1),
-        "captured_at": time.ctime(data.get("captured_at", 0)),
+        "captured_at": None if provided_token else time.ctime(data.get("captured_at", 0)),
     }
 
 
