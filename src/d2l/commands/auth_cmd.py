@@ -5,8 +5,14 @@ from pathlib import Path
 
 import click
 
-from d2l.auth import TOKEN_AUDIENCE, TOKEN_ISSUER, decode_jwt_claims, token_info
-from d2l.errors import handle_errors
+from d2l.auth import (
+    TOKEN_AUDIENCE,
+    TOKEN_ISSUER,
+    decode_jwt_claims,
+    load_token,
+    token_info,
+)
+from d2l.errors import handle_errors, TokenExpiredError, TokenNotFoundError
 from d2l.formatting import output
 
 D2L_TOKEN_RE = re.compile(rb"eyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+")
@@ -389,8 +395,15 @@ def login(headless, channel):
 def token():
     """Show token status, refreshing an expired saved session when possible."""
     info = token_info()
-    if info["status"] == "expired" and attempt_auto_login():
-        info = token_info()
+    if info["status"] == "expired":
+        try:
+            effective_info = token_info(load_token())
+        except (TokenExpiredError, TokenNotFoundError):
+            effective_info = None
+        if effective_info and effective_info["status"] == "valid":
+            info = effective_info
+        elif attempt_auto_login():
+            info = token_info()
     if info["status"] == "not found":
         click.echo(info.get("error", "No token found. Run: d2l login"))
         return
