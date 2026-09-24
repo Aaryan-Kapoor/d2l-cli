@@ -92,6 +92,35 @@ class AuthTests(unittest.TestCase):
         self.assertEqual(result.exit_code, 1)
         self.assertIn("unsupported auth_type=browser-session", result.output)
 
+    def test_token_command_auto_refreshes_expired_saved_token(self):
+        runner = CliRunner()
+        expired_info = {
+            "status": "expired",
+            "auth_type": "bearer",
+            "expires_at": "expired-time",
+            "remaining_minutes": 0,
+        }
+        fresh_info = {
+            "status": "valid",
+            "auth_type": "bearer",
+            "expires_at": "fresh-time",
+            "remaining_minutes": 60,
+        }
+
+        with patch.object(
+            auth_cmd, "token_info", side_effect=[expired_info, fresh_info]
+        ) as info:
+            with patch.object(
+                auth_cmd, "attempt_auto_login", return_value=True
+            ) as auto_login:
+                result = runner.invoke(auth_cmd.token)
+
+        self.assertEqual(result.exit_code, 0)
+        auto_login.assert_called_once_with()
+        self.assertEqual(info.call_count, 2)
+        self.assertIn("Status:    valid", result.output)
+        self.assertNotIn("Status:    expired", result.output)
+
 
 if __name__ == "__main__":
     unittest.main()

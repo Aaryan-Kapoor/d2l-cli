@@ -387,8 +387,10 @@ def login(headless, channel):
 
 @click.command()
 def token():
-    """Show token status (no API call needed)."""
+    """Show token status, refreshing an expired saved session when possible."""
     info = token_info()
+    if info["status"] == "expired" and attempt_auto_login():
+        info = token_info()
     if info["status"] == "not found":
         click.echo(info.get("error", "No token found. Run: d2l login"))
         return
